@@ -166,86 +166,77 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     setValue("jobText", "");
   };
 
+  const isFileUploaded = watchedResume instanceof File && !isExtracting;
+
   return (
     <Box sx={{ mt: 1 }}>
       <form onSubmit={handleSubmit(() => {})} noValidate>
         <Stack spacing={3}>
           <Grid container spacing={2}>
             {/* Upload Section */}
-            <Grid
-              size={{ xs: 12, md: resumePreview ? 6 : 12 }}
-              sx={{ transition: "all 0.4s ease" }}
-            >
-              <Card elevation={1} sx={{ height: "100%" }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography
-                    variant="h6"
-                    sx={{ mb: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
-                  >
-                    <DescriptionIcon color="primary" /> Upload Resume
-                  </Typography>
-                  <Box
-                    component="label"
-                    sx={{
-                      border: "2px dashed",
-                      borderColor: resumeError ? "error.main" : "primary.main",
-                      borderRadius: 2,
-                      p: 4,
-                      textAlign: "center",
-                      backgroundColor: "action.hover",
-                      cursor: isExtracting ? "not-allowed" : "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      transition: "background-color 0.2s",
-                      "&:hover": { backgroundColor: "action.selected" },
-                    }}
-                  >
-                    <input
-                      type="file"
-                      hidden
-                      accept=".pdf,.docx,.txt"
-                      disabled={isExtracting}
-                      onChange={(e) => handleResumeChange(e.target.files?.[0])}
-                    />
-                    {isExtracting ? (
-                      <CircularProgress size={48} sx={{ mb: 1 }} />
-                    ) : (
-                      <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
-                    )}
-                    <Typography variant="body1" fontWeight={500}>
-                      {isExtracting ? "Processing File..." : "Click to upload"}
+            {!isFileUploaded && (
+              <Grid
+                size={{ xs: 12, md: resumePreview ? 4 : 12 }}
+                sx={{ transition: "all 0.4s ease" }}
+              >
+                <Card elevation={1} sx={{ height: "100%" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ mb: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
+                    >
+                      <DescriptionIcon color="primary" /> Upload Resume
                     </Typography>
-                  </Box>
-                  {watchedResume instanceof File && !isExtracting && (
-                    <Chip
-                      icon={<InsertDriveFileIcon />}
-                      label={watchedResume.name}
-                      onDelete={handleClearResume}
-                      sx={{ mt: 2 }}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                    />
-                  )}
-                  {resumeError && (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                      {resumeError}
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+                    <Box
+                      component="label"
+                      sx={{
+                        border: "2px dashed",
+                        borderColor: resumeError ? "error.main" : "primary.main",
+                        borderRadius: 2,
+                        p: 4,
+                        textAlign: "center",
+                        backgroundColor: "action.hover",
+                        cursor: isExtracting ? "not-allowed" : "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        transition: "background-color 0.2s",
+                        "&:hover": { backgroundColor: "action.selected" },
+                      }}
+                    >
+                      <input
+                        type="file"
+                        hidden
+                        accept=".pdf,.docx,.txt"
+                        disabled={isExtracting}
+                        onChange={(e) => handleResumeChange(e.target.files?.[0])}
+                      />
+                      {isExtracting ? (
+                        <CircularProgress size={48} sx={{ mb: 1 }} />
+                      ) : (
+                        <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+                      )}
+                      <Typography variant="body1" fontWeight={500}>
+                        {isExtracting ? "Processing File..." : "Click to upload"}
+                      </Typography>
+                    </Box>
+                    {resumeError && (
+                      <Alert severity="error" sx={{ mt: 2 }}>
+                        {resumeError}
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
 
             {/* Preview Section */}
             {resumePreview && (
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12 }} sx={{ transition: "all 0.4s ease" }}>
                 <Card
                   elevation={1}
                   sx={{
                     height: "100%",
-                    bgcolor: "grey.50",
-                    border: "1px solid",
                     borderColor: "divider",
                   }}
                 >
@@ -262,6 +253,29 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                     >
                       <VisibilityIcon fontSize="small" /> Content Preview
                     </Typography>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          mb: 1,
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <DescriptionIcon color="primary" /> Uploaded Resume
+                      </Typography>
+                      <Chip
+                        icon={<InsertDriveFileIcon />}
+                        label={watchedResume.name}
+                        onDelete={handleClearResume}
+                        sx={{ my: 2 }}
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Box>
                     <Divider sx={{ mb: 1 }} />
                     <Box
                       sx={{
