@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import ReportViewer from "../components/ReportViewer";
 import ErrorCard from "../components/ErrorCard";
@@ -29,52 +29,56 @@ const ReportPage: React.FC = () => {
   const [usedModel, setUsedModel] = useState<string | null>(null);
   const [openModal, setOpenModal] = useState<boolean>(false);
 
-  const fetchReportWithModel = async (model?: string) => {
-    setLoading(true);
-    setError(null);
+  const fetchReportWithModel = useCallback(
+    async (model?: string) => {
+      setLoading(true);
+      setError(null);
 
-    const resumeText = localStorage.getItem("resumeText") || "";
-    const jobText = localStorage.getItem("jobText") || "";
+      const resumeText = localStorage.getItem("resumeText") || "";
+      const jobText = localStorage.getItem("jobText") || "";
 
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: resumeText, job: jobText, preferredModel: model }),
-      });
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume: resumeText, job: jobText, preferredModel: model }),
+        });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const errorMsg = errorData.error || "Failed to generate report";
-        throw new Error(`[${res.status}] ${errorMsg}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          const errorMsg = errorData.error || "Failed to generate report";
+          throw new Error(`[${res.status}] ${errorMsg}`);
+        }
+
+        const data = await res.json();
+        setReport(data.report || JSON.stringify(data, null, 2));
+        setAvailableModels(data.availableModels || []);
+        setUsedModel(data.usedModel || model);
+
+        // Show success toast only if this is a retry or model change
+        if (model || error) {
+          const modelDisplay = data.usedModel || model || "Default";
+          addToast(
+            `Analysis Complete! (Model: ${modelDisplay}) - Report ready for review`,
+            "success"
+          );
+        }
+      } catch (err) {
+        const errObj = err instanceof Error ? err : new Error("Unknown error occurred");
+        const errorMsg = errObj.message;
+        setError(errorMsg);
+        setReport("");
+        addToast(`Analysis Failed - ${errorMsg}`, "error");
+      } finally {
+        setLoading(false);
       }
-
-      const data = await res.json();
-      setReport(data.report || JSON.stringify(data, null, 2));
-      setAvailableModels(data.availableModels || []);
-      setUsedModel(data.usedModel || model);
-
-      // Show success toast only if this is a retry or model change
-      if (model || error) {
-        const modelDisplay = data.usedModel || model || "Default";
-        addToast(
-          `Analysis Complete! (Model: ${modelDisplay}) - Report ready for review`,
-          "success"
-        );
-      }
-    } catch (err: any) {
-      const errorMsg = err?.message || "Unknown error occurred";
-      setError(errorMsg);
-      setReport("");
-      addToast(`Analysis Failed - ${errorMsg}`, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [addToast, error]
+  );
 
   useEffect(() => {
     fetchReportWithModel();
-  }, []);
+  }, [fetchReportWithModel]);
 
   const handleRecover = () => {
     // ✅ Do NOT clear localStorage, just close modal and redirect

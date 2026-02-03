@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   TextField,
   Button,
   Box,
+  Grid,
   Card,
   CardContent,
   Typography,
@@ -12,9 +13,7 @@ import {
   Stack,
   FormHelperText,
   Divider,
-  Grid,
 } from "@mui/material";
-
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
@@ -26,132 +25,146 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+import * as pdfjs from "pdfjs-dist";
+import mammoth from "mammoth";
+
+// Interface for PDF.js text items
+interface TextItem {
+  str: string;
+}
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 interface UploadFormProps {
   onResumeUpload: (file: File | null) => void;
   onJobDescriptionChange: (value: string) => void;
 }
 
+// Fixed Schema: Uses .nullable() or .optional() to avoid 'any'
+const schema = z.object({
+  resume: z
+    .instanceof(File, { message: "Resume file is required" })
+    .refine((f) => f.size <= 5 * 1024 * 1024, "File size exceeds 5MB"),
+  jobText: z.string().min(20, "Job description must be at least 20 characters"),
+});
+
+type FormValues = z.infer<typeof schema>;
+
 const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptionChange }) => {
   const [jobText, setJobText] = useState("");
   const [jobError, setJobError] = useState("");
   const [resumeError, setResumeError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [resumePreview, setResumePreview] = useState<string>("");
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  const ACCEPTED_FORMATS = [".pdf", ".doc", ".docx", ".txt"];
-
-  const schema = z.object({
-    resume: z
-      .any()
-      .refine((f: any) => f instanceof File, "Resume file is required")
-      .refine((f: any) => (f && f.size <= MAX_FILE_SIZE) || !f, "File size exceeds 5MB"),
-    jobText: z.string().min(20, "Job description must be at least 20 characters"),
-  });
-
-  type FormValues = z.infer<typeof schema>;
+  const ACCEPTED_FORMATS = [".pdf", ".docx", ".txt"];
 
   const { handleSubmit, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { resume: undefined as any, jobText: "" },
+    defaultValues: {
+      // Initialize with a dummy or cast, but schema handles the validation
+      resume: undefined as unknown as File,
+      jobText: "",
+    },
     mode: "onChange",
   });
 
   const watchedResume = watch("resume");
 
-  useEffect(() => {
-    setIsLoading(true);
-    const savedJob = localStorage.getItem("jobText");
-    if (savedJob) {
-      setJobText(savedJob);
-      onJobDescriptionChange(savedJob);
-      setValue("jobText", savedJob);
-    }
-    const savedResume = localStorage.getItem("resumeText");
-    if (savedResume) {
-      setResumePreview(savedResume);
-      const blob = new Blob([savedResume], { type: "text/plain" });
-      const file = new File([blob], "resume.txt", { type: "text/plain" });
-      onResumeUpload(file);
-      setValue("resume", file);
-    }
-    setIsLoading(false);
-  }, [onResumeUpload, onJobDescriptionChange, setValue]);
-
-  const handleResumeChange = async (file?: File) => {
-    if (!file) {
-      handleClearResume();
-      return;
-    }
-
-    setResumeError("");
-    const fileExtension = "." + (file.name.split(".").pop() || "").toLowerCase();
-
-    if (!ACCEPTED_FORMATS.includes(fileExtension)) {
-      setResumeError(`Invalid format. Accepted: ${ACCEPTED_FORMATS.join(", ")}`);
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setResumeError("File size exceeds 5MB");
-      return;
-    }
-
-    // Extraction logic for preview
-    if (file.type === "text/plain" || fileExtension === ".txt") {
-      const text = await file.text();
-      setResumePreview(text);
-    } else {
-      // Placeholder for PDF/DOCX until extraction library is added
-      setResumePreview(`[Content extracted from ${file.name}]\n\nProcessing text conversion...`);
-    }
-
-    onResumeUpload(file);
-    setValue("resume", file, { shouldValidate: true });
-  };
-
-  const handleJobChange = (value: string) => {
-    setJobText(value);
-    onJobDescriptionChange(value);
-    setValue("jobText", value, { shouldValidate: true });
-    if (value.length < 20) {
-      setJobError("Job description must be at least 20 characters");
+  const validateJobDescription = (text: string): void => {
+    if (!text.trim()) {
+      setJobError("Job description is required");
+    } else if (text.trim().length < 20) {
+      setJobError("Job description must be at least 20 characters long");
     } else {
       setJobError("");
     }
   };
 
-  const handleClearResume = () => {
+  const handleJobChange = (value: string): void => {
+    setJobText(value);
+    onJobDescriptionChange(value);
+    setValue("jobText", value, { shouldValidate: true });
+    validateJobDescription(value);
+  };
+
+  const extractText = async (file: File): Promise<string> => {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    try {
+      if (extension === "pdf") {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          // Type cast to our TextItem interface
+          text += content.items.map((item) => (item as TextItem).str).join(" ") + "\n";
+        }
+        return text;
+      }
+      if (extension === "docx") {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        return result.value;
+      }
+      return await file.text();
+    } catch (_err) {
+      console.error("Extraction error", _err);
+      throw new Error("Failed to read file content.");
+    }
+  };
+
+  const handleResumeChange = async (file?: File): Promise<void> => {
+    if (!file) {
+      handleClearResume();
+      return;
+    }
+    setResumeError("");
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+
+    if (!ACCEPTED_FORMATS.includes(ext)) {
+      setResumeError(`Format not supported. Use: ${ACCEPTED_FORMATS.join(", ")}`);
+      return;
+    }
+
+    try {
+      setIsExtracting(true);
+      const text = await extractText(file);
+      setResumePreview(text);
+      onResumeUpload(file);
+      setValue("resume", file, { shouldValidate: true });
+    } catch (_err) {
+      setResumeError(`Error reading file content: ${(_err as Error).message}`);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleClearResume = (): void => {
     setResumePreview("");
     setResumeError("");
     onResumeUpload(null);
-    setValue("resume", undefined as any);
+    // Use type assertion to satisfy the specific File requirement
+    setValue("resume", null as unknown as File, { shouldValidate: true });
   };
 
-  const handleClearJob = () => {
+  const handleClearJob = (): void => {
     setJobText("");
     setJobError("");
     onJobDescriptionChange("");
     setValue("jobText", "");
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ mt: 1 }}>
       <form onSubmit={handleSubmit(() => {})} noValidate>
         <Stack spacing={3}>
-          {/* Resume Section with Grid2 Side-by-Side */}
           <Grid container spacing={2}>
             <Grid
               size={{ xs: 12, md: resumePreview ? 6 : 12 }}
-              sx={{ transition: "all 0.3s ease" }}
+              sx={{ transition: "all 0.4s ease" }}
             >
               <Card elevation={1} sx={{ height: "100%" }}>
                 <CardContent sx={{ p: 3 }}>
@@ -159,12 +172,8 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                     variant="h6"
                     sx={{ mb: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
                   >
-                    <DescriptionIcon color="primary" /> Upload Your Resume
+                    <DescriptionIcon color="primary" /> Upload Resume
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                    PDF, DOCX, or TXT (Max 5MB)
-                  </Typography>
-
                   <Box
                     component="label"
                     sx={{
@@ -174,37 +183,39 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                       p: 4,
                       textAlign: "center",
                       backgroundColor: "action.hover",
-                      cursor: "pointer",
+                      cursor: isExtracting ? "not-allowed" : "pointer",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      transition: "0.2s",
                       "&:hover": { backgroundColor: "action.selected" },
                     }}
                   >
                     <input
                       type="file"
                       hidden
-                      accept=".pdf,.doc,.docx,.txt"
+                      accept=".pdf,.docx,.txt"
+                      disabled={isExtracting}
                       onChange={(e) => handleResumeChange(e.target.files?.[0])}
                     />
-                    <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+                    {isExtracting ? (
+                      <CircularProgress size={48} sx={{ mb: 1 }} />
+                    ) : (
+                      <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+                    )}
                     <Typography variant="body1" fontWeight={500}>
-                      Select Resume
+                      {isExtracting ? "Processing..." : "Click to upload"}
                     </Typography>
                   </Box>
-
-                  {watchedResume && (
-                    <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: "center" }}>
-                      <Chip
-                        icon={<InsertDriveFileIcon />}
-                        label={(watchedResume as File).name}
-                        onDelete={handleClearResume}
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                      />
-                    </Stack>
+                  {watchedResume instanceof File && !isExtracting && (
+                    <Chip
+                      icon={<InsertDriveFileIcon />}
+                      label={watchedResume.name}
+                      onDelete={handleClearResume}
+                      sx={{ mt: 2 }}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
                   )}
                   {resumeError && (
                     <Alert severity="error" sx={{ mt: 2 }}>
@@ -215,12 +226,16 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
               </Card>
             </Grid>
 
-            {/* PREVIEW COLUMN */}
             {resumePreview && (
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card
                   elevation={1}
-                  sx={{ height: "100%", backgroundColor: "#fafafa", border: "1px solid #e0e0e0" }}
+                  sx={{
+                    height: "100%",
+                    bgcolor: "grey.50",
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
                 >
                   <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                     <Typography
@@ -233,22 +248,22 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                         color: "text.secondary",
                       }}
                     >
-                      <VisibilityIcon fontSize="small" /> Extracted Text Preview
+                      <VisibilityIcon fontSize="small" /> Content Preview
                     </Typography>
-                    <Divider sx={{ mb: 2 }} />
+                    <Divider sx={{ mb: 1 }} />
                     <Box
                       sx={{
                         flexGrow: 1,
-                        backgroundColor: "#fff",
+                        bgcolor: "background.paper",
                         p: 2,
                         borderRadius: 1,
-                        border: "1px solid #eee",
-                        maxHeight: "280px",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        maxHeight: "250px",
                         overflowY: "auto",
-                        fontSize: "0.8rem",
+                        fontSize: "0.75rem",
                         fontFamily: "monospace",
                         whiteSpace: "pre-wrap",
-                        color: "text.primary",
                       }}
                     >
                       {resumePreview}
@@ -259,7 +274,6 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
             )}
           </Grid>
 
-          {/* Job Description Card */}
           <Card elevation={1}>
             <CardContent sx={{ p: 3 }}>
               <Typography
@@ -269,8 +283,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                 <WorkIcon color="primary" /> Job Description
               </Typography>
               <TextField
-                label="Enter the job description"
-                placeholder="Paste requirements here..."
+                placeholder="Paste the requirements here..."
                 multiline
                 minRows={6}
                 fullWidth
@@ -280,14 +293,15 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                 helperText={jobError || `${jobText.length} / 20 characters minimum`}
                 variant="outlined"
               />
-              {jobText && !jobError && (
+              {jobText.trim().length >= 20 && !jobError && (
                 <FormHelperText
                   sx={{
+                    mt: 1,
                     color: "success.main",
+                    fontWeight: 500,
                     display: "flex",
                     alignItems: "center",
                     gap: 0.5,
-                    mt: 1,
                   }}
                 >
                   <CheckIcon sx={{ fontSize: "1rem" }} /> Valid description

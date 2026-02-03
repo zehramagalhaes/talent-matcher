@@ -40,6 +40,13 @@ type AnalysisResult = {
   error?: string;
 };
 
+type RequestBody = {
+  resume: string;
+  jobDescription?: string;
+  job?: string;
+  jobText?: string;
+};
+
 // ===== Helper Functions =====
 
 /**
@@ -76,7 +83,7 @@ const validateMethod = (method: string | undefined): boolean => {
 /**
  * Validate and extract resume and job description from request body
  */
-const validateInputs = (body: any): { resume: string; jobDesc: string } | null => {
+const validateInputs = (body: RequestBody): { resume: string; jobDesc: string } | null => {
   const { resume, jobDescription, job, jobText } = body;
 
   // Validate resume
@@ -111,8 +118,9 @@ const generateAnalysis = async (
   try {
     const result = await model.generateContent(analysisPrompt);
     return result.response.text();
-  } catch (error: unknown) {
-    const errorMessage = (error as any)?.message || "";
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error("Error when generating content");
+    const errorMessage = errorObj.message;
 
     // Check if we should retry with fallback key
     if (isApiKeyError(errorMessage) && fallbackKey && primaryKey !== fallbackKey) {
@@ -216,9 +224,9 @@ Format your response as clear, structured markdown.`;
       report: analysisText,
       usedModel: "gemini-2.0-flash",
     });
-  } catch (error: any) {
-    // Determine error type from exception
-    const errorMessage = error?.message || "";
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error("Error on generating analysis");
+    const errorMessage = errorObj.message;
 
     switch (true) {
       case isApiKeyError(errorMessage):
