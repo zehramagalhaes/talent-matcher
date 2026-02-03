@@ -11,13 +11,17 @@ import {
   Chip,
   Stack,
   FormHelperText,
+  Divider,
+  Grid,
 } from "@mui/material";
+
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import CheckIcon from "@mui/icons-material/Check";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,11 +36,11 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
   const [jobError, setJobError] = useState("");
   const [resumeError, setResumeError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resumePreview, setResumePreview] = useState<string>("");
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ACCEPTED_FORMATS = [".pdf", ".doc", ".docx", ".txt"];
 
-  // Zod schema for form validation
   const schema = z.object({
     resume: z
       .any()
@@ -49,13 +53,12 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
 
   const { handleSubmit, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { resume: undefined as unknown as File | undefined, jobText: "" },
+    defaultValues: { resume: undefined as any, jobText: "" },
     mode: "onChange",
   });
 
   const watchedResume = watch("resume");
 
-  // ✅ Load saved values on mount
   useEffect(() => {
     setIsLoading(true);
     const savedJob = localStorage.getItem("jobText");
@@ -66,73 +69,63 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     }
     const savedResume = localStorage.getItem("resumeText");
     if (savedResume) {
+      setResumePreview(savedResume);
       const blob = new Blob([savedResume], { type: "text/plain" });
       const file = new File([blob], "resume.txt", { type: "text/plain" });
       onResumeUpload(file);
-      setValue("resume", file as unknown as File);
+      setValue("resume", file);
     }
     setIsLoading(false);
   }, [onResumeUpload, onJobDescriptionChange, setValue]);
 
-  const validateResumeFile = (file: File): boolean => {
-    setResumeError("");
-
-    if (file.size > MAX_FILE_SIZE) {
-      setResumeError(
-        `File size exceeds 5MB limit. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
-      );
-      return false;
-    }
-
-    const fileExtension = "." + (file.name.split(".").pop() || "").toLowerCase();
-    if (!ACCEPTED_FORMATS.includes(fileExtension)) {
-      setResumeError(`Invalid file format. Accepted formats: ${ACCEPTED_FORMATS.join(", ")}`);
-      return false;
-    }
-
-    return true;
-  };
-
-  const validateJobDescription = (text: string): boolean => {
-    setJobError("");
-    if (!text.trim()) {
-      setJobError("Job description is required");
-      return false;
-    }
-    if (text.trim().length < 20) {
-      setJobError("Job description must be at least 20 characters long");
-      return false;
-    }
-    return true;
-  };
-
-  const handleResumeChange = (file?: File) => {
+  const handleResumeChange = async (file?: File) => {
     if (!file) {
-      onResumeUpload(null);
-      setValue("resume", undefined as unknown as File);
+      handleClearResume();
       return;
     }
 
-    if (validateResumeFile(file)) {
-      onResumeUpload(file);
-      setValue("resume", file as unknown as File, { shouldValidate: true });
-    } else {
-      onResumeUpload(null);
-      setValue("resume", undefined as unknown as File);
+    setResumeError("");
+    const fileExtension = "." + (file.name.split(".").pop() || "").toLowerCase();
+
+    if (!ACCEPTED_FORMATS.includes(fileExtension)) {
+      setResumeError(`Invalid format. Accepted: ${ACCEPTED_FORMATS.join(", ")}`);
+      return;
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setResumeError("File size exceeds 5MB");
+      return;
+    }
+
+    // Extraction logic for preview
+    if (file.type === "text/plain" || fileExtension === ".txt") {
+      const text = await file.text();
+      setResumePreview(text);
+    } else {
+      // Placeholder for PDF/DOCX until extraction library is added
+      setResumePreview(`[Content extracted from ${file.name}]\n\nProcessing text conversion...`);
+    }
+
+    onResumeUpload(file);
+    setValue("resume", file, { shouldValidate: true });
   };
 
   const handleJobChange = (value: string) => {
     setJobText(value);
     onJobDescriptionChange(value);
     setValue("jobText", value, { shouldValidate: true });
-    validateJobDescription(value);
+    if (value.length < 20) {
+      setJobError("Job description must be at least 20 characters");
+    } else {
+      setJobError("");
+    }
   };
 
   const handleClearResume = () => {
+    setResumePreview("");
     setResumeError("");
     onResumeUpload(null);
-    setValue("resume", undefined as unknown as File);
+    setValue("resume", undefined as any);
   };
 
   const handleClearJob = () => {
@@ -153,190 +146,160 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
   return (
     <Box sx={{ mt: 1 }}>
       <form onSubmit={handleSubmit(() => {})} noValidate>
-        <Stack spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {/* Resume Upload Section */}
-          <Card elevation={1}>
-            <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  mb: 1,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
-                }}
-              >
-                <DescriptionIcon sx={{ color: "primary.main" }} />
-                Upload Your Resume
-              </Typography>
-              <Typography
-                variant="body2"
-                color="textSecondary"
-                sx={{ mb: 2.5, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
-              >
-                Supported formats: PDF, DOC, DOCX, TXT (Max 5MB)
-              </Typography>
-
-              <Box
-                sx={{
-                  border: "2px dashed",
-                  borderColor: resumeError ? "error.main" : "primary.main",
-                  borderRadius: 2,
-                  p: { xs: 2.5, sm: 3, md: 4 },
-                  textAlign: "center",
-                  backgroundColor: resumeError ? "error.50" : "action.hover",
-                  transition: "all 0.3s ease",
-                  cursor: "pointer",
-                  minHeight: { xs: "140px", sm: "160px", md: "180px" },
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  "&:hover": {
-                    backgroundColor: resumeError ? "error.50" : "action.selected",
-                    borderColor: resumeError ? "error.main" : "primary.dark",
-                  },
-                }}
-                component="label"
-              >
-                <input
-                  type="file"
-                  hidden
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) =>
-                    handleResumeChange(e.target.files ? e.target.files[0] : undefined)
-                  }
-                />
-                <CloudUploadIcon
-                  sx={{
-                    fontSize: { xs: 40, sm: 48, md: 56 },
-                    color: resumeError ? "error.main" : "primary.main",
-                    mb: 1,
-                  }}
-                />
-                <Typography
-                  variant="body1"
-                  sx={{ mb: 0.5, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" } }}
-                >
-                  Click to upload or drag and drop
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}
-                >
-                  Select your resume file
-                </Typography>
-              </Box>
-
-              {resumeError && (
-                <Alert severity="error" sx={{ mt: 2, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
-                  {resumeError}
-                </Alert>
-              )}
-
-              {watchedResume && (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ mt: 2, alignItems: "center", flexWrap: "wrap", gap: 1 }}
-                >
-                  <Chip
-                    icon={<InsertDriveFileIcon />}
-                    label={(watchedResume as unknown as File).name}
-                    onDelete={() => handleClearResume()}
-                    deleteIcon={<DeleteIcon />}
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                    sx={{ maxWidth: "calc(100% - 80px)", fontSize: { xs: "0.7rem", sm: "0.8rem" } }}
-                  />
+        <Stack spacing={3}>
+          {/* Resume Section with Grid2 Side-by-Side */}
+          <Grid container spacing={2}>
+            <Grid
+              size={{ xs: 12, md: resumePreview ? 6 : 12 }}
+              sx={{ transition: "all 0.3s ease" }}
+            >
+              <Card elevation={1} sx={{ height: "100%" }}>
+                <CardContent sx={{ p: 3 }}>
                   <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    sx={{ whiteSpace: "nowrap", fontSize: { xs: "0.65rem", sm: "0.75rem" } }}
+                    variant="h6"
+                    sx={{ mb: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
                   >
-                    {((watchedResume as unknown as File).size / 1024).toFixed(2)} KB
+                    <DescriptionIcon color="primary" /> Upload Your Resume
                   </Typography>
-                </Stack>
-              )}
-            </CardContent>
-          </Card>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    PDF, DOCX, or TXT (Max 5MB)
+                  </Typography>
 
-          {/* Job Description Section */}
+                  <Box
+                    component="label"
+                    sx={{
+                      border: "2px dashed",
+                      borderColor: resumeError ? "error.main" : "primary.main",
+                      borderRadius: 2,
+                      p: 4,
+                      textAlign: "center",
+                      backgroundColor: "action.hover",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      transition: "0.2s",
+                      "&:hover": { backgroundColor: "action.selected" },
+                    }}
+                  >
+                    <input
+                      type="file"
+                      hidden
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={(e) => handleResumeChange(e.target.files?.[0])}
+                    />
+                    <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+                    <Typography variant="body1" fontWeight={500}>
+                      Select Resume
+                    </Typography>
+                  </Box>
+
+                  {watchedResume && (
+                    <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: "center" }}>
+                      <Chip
+                        icon={<InsertDriveFileIcon />}
+                        label={(watchedResume as File).name}
+                        onDelete={handleClearResume}
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Stack>
+                  )}
+                  {resumeError && (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                      {resumeError}
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* PREVIEW COLUMN */}
+            {resumePreview && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card
+                  elevation={1}
+                  sx={{ height: "100%", backgroundColor: "#fafafa", border: "1px solid #e0e0e0" }}
+                >
+                  <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        mb: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        color: "text.secondary",
+                      }}
+                    >
+                      <VisibilityIcon fontSize="small" /> Extracted Text Preview
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        backgroundColor: "#fff",
+                        p: 2,
+                        borderRadius: 1,
+                        border: "1px solid #eee",
+                        maxHeight: "280px",
+                        overflowY: "auto",
+                        fontSize: "0.8rem",
+                        fontFamily: "monospace",
+                        whiteSpace: "pre-wrap",
+                        color: "text.primary",
+                      }}
+                    >
+                      {resumePreview}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+
+          {/* Job Description Card */}
           <Card elevation={1}>
-            <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+            <CardContent sx={{ p: 3 }}>
               <Typography
                 variant="h6"
-                sx={{
-                  mb: 1,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
-                }}
+                sx={{ mb: 1, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}
               >
-                <WorkIcon sx={{ color: "primary.main" }} />
-                Job Description
+                <WorkIcon color="primary" /> Job Description
               </Typography>
-              <Typography
-                variant="body2"
-                color="textSecondary"
-                sx={{ mb: 2, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
-              >
-                Paste the complete job description below
-              </Typography>
-
               <TextField
                 label="Enter the job description"
-                placeholder="Paste the complete job description here..."
+                placeholder="Paste requirements here..."
                 multiline
                 minRows={6}
-                maxRows={10}
                 fullWidth
                 value={jobText}
                 onChange={(e) => handleJobChange(e.target.value)}
                 error={!!jobError}
                 helperText={jobError || `${jobText.length} / 20 characters minimum`}
                 variant="outlined"
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    fontSize: { xs: "0.85rem", sm: "0.9rem", md: "1rem" },
-                  },
-                  "& .MuiFormHelperText-root": {
-                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                  },
-                }}
               />
               {jobText && !jobError && (
                 <FormHelperText
                   sx={{
-                    mt: 1,
                     color: "success.main",
-                    fontWeight: 500,
-                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
                     display: "flex",
                     alignItems: "center",
                     gap: 0.5,
+                    mt: 1,
                   }}
                 >
-                  <CheckIcon sx={{ fontSize: "1rem" }} />
-                  Job description looks good
+                  <CheckIcon sx={{ fontSize: "1rem" }} /> Valid description
                 </FormHelperText>
               )}
               {jobText && (
-                <Box sx={{ mt: 1.5, textAlign: "right" }}>
+                <Box sx={{ mt: 1, textAlign: "right" }}>
                   <Button
                     size="small"
                     startIcon={<DeleteIcon />}
                     onClick={handleClearJob}
-                    variant="text"
                     color="inherit"
-                    sx={{ textTransform: "uppercase", fontSize: { xs: "0.65rem", sm: "0.75rem" } }}
                   >
                     Clear
                   </Button>
