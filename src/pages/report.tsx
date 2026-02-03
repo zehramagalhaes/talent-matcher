@@ -77,8 +77,8 @@ const ReportPage: React.FC = () => {
   );
 
   useEffect(() => {
-    fetchReportWithModel();
-  }, [fetchReportWithModel]);
+    void fetchReportWithModel();
+  }, []);
 
   const handleRecover = () => {
     // ✅ Do NOT clear localStorage, just close modal and redirect
