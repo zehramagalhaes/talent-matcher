@@ -55,8 +55,9 @@ const Home: React.FC = () => {
       } else {
         addToast(`Failed to Process Resume - ${result.error || "Unknown error"}`, "error");
       }
-    } catch (error: any) {
-      const errorMsg = error?.message || "Unknown error";
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error("Unknown error");
+      const errorMsg = errorObj.message;
       addToast(`Failed to Process Resume - ${errorMsg}`, "error");
     }
   };

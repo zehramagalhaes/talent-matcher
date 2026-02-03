@@ -38,8 +38,9 @@ const useGenerateReport = () => {
         success: true,
         details: { resumeName: resume.name, jobLength: jobText.length },
       };
-    } catch (err: any) {
-      const msg = err?.message || "Unknown error";
+    } catch (err) {
+      const errObj = err instanceof Error ? err : new Error("Unknown error");
+      const msg = errObj.message;
       setError(msg);
       setIsLoading(false);
       return { success: false, error: msg };
@@ -89,11 +90,12 @@ Generate:
       localStorage.setItem("analysisReport", generatedReport);
 
       setIsLoading(false);
-    } catch (err: any) {
-      const msg = err?.message || "Analysis failed";
+    } catch (err) {
+      const errObj = err instanceof Error ? err : new Error("Unknown error");
+      const msg = errObj.message;
       setError(msg);
       setIsLoading(false);
-      throw err;
+      throw errObj;
     }
   };
 
@@ -113,8 +115,9 @@ Generate:
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      const msg = err?.message || "Download failed";
+    } catch (err) {
+      const errObj = err instanceof Error ? err : new Error("Download failed");
+      const msg = errObj.message;
       setError(msg);
     }
   };

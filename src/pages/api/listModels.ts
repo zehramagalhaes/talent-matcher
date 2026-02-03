@@ -16,7 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const data = await response.json();
     res.status(200).json({ availableModels: data.models });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const errorObj =
+      error instanceof Error ? error : new Error("Error on listing available models");
+    res.status(500).json({ error: errorObj.message });
   }
 }
