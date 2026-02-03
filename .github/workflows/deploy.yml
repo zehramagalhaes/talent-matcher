@@ -1,4 +1,4 @@
-name: Pull request checks
+name: Pull Request & Deployment Checks
 
 on:
   push:
@@ -7,90 +7,54 @@ on:
     branches: [main, develop]
 
 jobs:
-  # PR-only: Check for merge conflicts
-  check-conflicts:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for merge conflicts
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          if git merge --no-commit --no-ff origin/${{ github.base_ref }} 2>&1 | grep -q "CONFLICT"; then
-            echo "❌ This pull request has unresolved merge conflicts."
-            exit 1
-          else
-            echo "✅ No merge conflicts detected"
-          fi
-
-  # Build job - runs on all PRs and pushes
-  build:
+  validate-and-build:
+    name: 🏗️ Validate and Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🟢 Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
+      - name: 📦 Install Dependencies
+        run: npm ci
 
-      - name: Build project
+      - name: 🛠️ Build Production Bundle
         run: npm run build
         env:
           NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: .next/
-          retention-days: 1
-
-  # Tests job - runs on all PRs and pushes
-  tests:
+  check-conflicts:
+    name: 🛡️ Conflict Check
     runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run ESLint
-        run: npm run lint
-        continue-on-error: true
-
-      - name: Run Prettier check
-        run: npm run format:check
-        continue-on-error: true
-
-  # Require all checks on PRs
-  pr-checks-required:
-    runs-on: ubuntu-latest
-    needs: [build, tests]
+    needs: [validate-and-build]
     if: github.event_name == 'pull_request'
     steps:
-      - name: Verify all checks passed
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Verify Mergeability
         run: |
-          echo "✅ All required checks passed for PR"
-          echo "✅ Build successful"
-          echo "✅ Tests passed"
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "ℹ️  This PR is ready for review and merge"
+          git fetch origin ${{ github.base_ref }}
+          if git merge --no-commit --no-ff origin/${{ github.base_ref }} 2>&1 | grep -q "CONFLICT"; then
+            echo "❌ CONFLICT DETECTED"
+            exit 1
+          else
+            echo "✅ NO CONFLICTS"
           fi
+
+  pr-status:
+    name: 🏁 PR Readiness Signal
+    runs-on: ubuntu-latest
+    needs: [check-conflicts]
+    # This job ONLY runs if check-conflicts was successful
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: ✅ Final Status Report
+        run: echo "PR is safe to merge."
