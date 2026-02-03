@@ -7,6 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
+  # PR-only: Check for merge conflicts
   check-conflicts:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -26,10 +27,38 @@ jobs:
             echo "✅ No merge conflicts detected"
           fi
 
-  deploy:
+  # Build job - runs on all PRs and pushes
+  build:
     runs-on: ubuntu-latest
-    needs: [check-conflicts] # Ensures we don't build if there are conflicts
-    if: always() && (github.event_name == 'push' || github.event_name == 'pull_request')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+        env:
+          NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 1
+
+  # Tests job - runs on all PRs and pushes
+  tests:
+    runs-on: ubuntu-latest
+    needs: [build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,24 +80,26 @@ jobs:
         run: npm run format:check
         continue-on-error: true
 
-      - name: Build project
-        run: npm run build
-        env:
-          # Required during build if your code validates env vars at build time
-          NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  # Deploy job - only runs on push to main/develop
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, tests]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Deploy to Vercel
-        # Only deploy on actual pushes to main/develop, not on PR checks
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         run: |
           npm install --global vercel
           vercel deploy --prod --yes \
             --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          # Passes the API key to Vercel's build environment
           NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
