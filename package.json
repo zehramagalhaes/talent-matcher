@@ -1,0 +1,66 @@
+{
+  "name": "talentmatcher",
+  "version": "1.0.0",
+  "description": "TalentMatcher - AI-powered resume and job description compatibility analyzer built with Next.js, Material UI, and Gemini API.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && next export",
+    "start": "next start",
+    "deploy": "gh-pages -d out",
+    "clean": "rimraf node_modules package-lock.json",
+    "lint": "eslint src --max-warnings 15",
+    "lint:fix": "prettier --write \"src/**/*.{ts,tsx,json,md}\" && eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\""
+  },
+  "keywords": [
+    "nextjs",
+    "material-ui",
+    "resume",
+    "job-matching",
+    "gemini-api",
+    "career",
+    "ai"
+  ],
+  "author": "Zehra",
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@google/genai": "^1.39.0",
+    "@google/generative-ai": "^0.24.1",
+    "@hookform/resolvers": "^3.1.1",
+    "@mui/icons-material": "^7.3.7",
+    "@mui/material": "^7.3.7",
+    "next": "^16.1.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.45.1",
+    "react-syntax-highlighter": "^16.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@types/react": "^18.2.21",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.6",
+    "gh-pages": "^6.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
