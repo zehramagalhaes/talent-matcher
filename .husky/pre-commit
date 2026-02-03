@@ -1,4 +1,16 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+# Prevent commits directly to protected branches
+PROTECTED_BRANCHES=("main" "develop" "production")
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+for branch in "${PROTECTED_BRANCHES[@]}"; do
+  if [ "$CURRENT_BRANCH" = "$branch" ]; then
+    echo "❌ Error: You cannot commit directly to the '$branch' branch."
+    echo "Please create a feature branch and submit a pull request instead."
+    echo ""
+    echo "To create a feature branch, run:"
+    echo "  git checkout -b feature/your-feature-name"
+    exit 1
+  fi
+done
 
 npx lint-staged
