@@ -24,23 +24,18 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
-import * as pdfjs from "pdfjs-dist";
 import mammoth from "mammoth";
 
-// Interface for PDF.js text items
+// Types for extraction
 interface TextItem {
   str: string;
 }
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface UploadFormProps {
   onResumeUpload: (file: File | null) => void;
   onJobDescriptionChange: (value: string) => void;
 }
 
-// Fixed Schema: Uses .nullable() or .optional() to avoid 'any'
 const schema = z.object({
   resume: z
     .instanceof(File, { message: "Resume file is required" })
@@ -51,10 +46,10 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptionChange }) => {
-  const [jobText, setJobText] = useState("");
-  const [jobError, setJobError] = useState("");
-  const [resumeError, setResumeError] = useState("");
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [jobText, setJobText] = useState<string>("");
+  const [jobError, setJobError] = useState<string>("");
+  const [resumeError, setResumeError] = useState<string>("");
+  const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [resumePreview, setResumePreview] = useState<string>("");
 
   const ACCEPTED_FORMATS = [".pdf", ".docx", ".txt"];
@@ -62,7 +57,6 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
   const { handleSubmit, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      // Initialize with a dummy or cast, but schema handles the validation
       resume: undefined as unknown as File,
       jobText: "",
     },
@@ -90,25 +84,39 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
 
   const extractText = async (file: File): Promise<string> => {
     const extension = file.name.split(".").pop()?.toLowerCase();
+
     try {
       if (extension === "pdf") {
+        // 1. Import the library and worker entry point
+        const pdfjs = await import("pdfjs-dist");
+
+        // 2. Point to the local worker provided by the package
+        // This avoids the CDN and uses your local node_modules version
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.mjs",
+          import.meta.url
+        ).toString();
+
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         let text = "";
+
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
-          // Type cast to our TextItem interface
+
           text += content.items.map((item) => (item as TextItem).str).join(" ") + "\n";
         }
         return text;
       }
+
       if (extension === "docx") {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         return result.value;
       }
+
       return await file.text();
     } catch (_err) {
       console.error("Extraction error", _err);
@@ -121,6 +129,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       handleClearResume();
       return;
     }
+
     setResumeError("");
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
 
@@ -136,7 +145,8 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       onResumeUpload(file);
       setValue("resume", file, { shouldValidate: true });
     } catch (_err) {
-      setResumeError(`Error reading file content: ${(_err as Error).message}`);
+      console.error("File read error:", _err);
+      setResumeError("Error reading file content.");
     } finally {
       setIsExtracting(false);
     }
@@ -146,7 +156,6 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     setResumePreview("");
     setResumeError("");
     onResumeUpload(null);
-    // Use type assertion to satisfy the specific File requirement
     setValue("resume", null as unknown as File, { shouldValidate: true });
   };
 
@@ -162,6 +171,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       <form onSubmit={handleSubmit(() => {})} noValidate>
         <Stack spacing={3}>
           <Grid container spacing={2}>
+            {/* Upload Section */}
             <Grid
               size={{ xs: 12, md: resumePreview ? 6 : 12 }}
               sx={{ transition: "all 0.4s ease" }}
@@ -187,6 +197,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
+                      transition: "background-color 0.2s",
                       "&:hover": { backgroundColor: "action.selected" },
                     }}
                   >
@@ -203,7 +214,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
                       <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
                     )}
                     <Typography variant="body1" fontWeight={500}>
-                      {isExtracting ? "Processing..." : "Click to upload"}
+                      {isExtracting ? "Processing File..." : "Click to upload"}
                     </Typography>
                   </Box>
                   {watchedResume instanceof File && !isExtracting && (
@@ -226,6 +237,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
               </Card>
             </Grid>
 
+            {/* Preview Section */}
             {resumePreview && (
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card
@@ -274,6 +286,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
             )}
           </Grid>
 
+          {/* Job Description Section */}
           <Card elevation={1}>
             <CardContent sx={{ p: 3 }}>
               <Typography
