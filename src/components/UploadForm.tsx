@@ -32,7 +32,7 @@ interface TextItem {
 }
 
 interface UploadFormProps {
-  onResumeUpload: (file: File | null) => void;
+  onResumeUpload: (file: File | null, text: string) => void;
   onJobDescriptionChange: (value: string) => void;
 }
 
@@ -142,7 +142,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       setIsExtracting(true);
       const text = await extractText(file);
       setResumePreview(text);
-      onResumeUpload(file);
+      onResumeUpload(file, text);
       setValue("resume", file, { shouldValidate: true });
     } catch (_err) {
       console.error("File read error:", _err);
@@ -155,7 +155,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
   const handleClearResume = (): void => {
     setResumePreview("");
     setResumeError("");
-    onResumeUpload(null);
+    onResumeUpload(null, "");
     setValue("resume", null as unknown as File, { shouldValidate: true });
   };
 

@@ -9,11 +9,11 @@ import {
   Stack,
   Alert,
 } from "@mui/material";
-import Layout from "../components/Layout";
-import UploadForm from "../components/UploadForm";
+import MainLayout from "@/components/reusables/Layout";
+import UploadForm from "@/components/UploadForm";
 import { useRouter } from "next/router";
-import useGenerateReport from "../hooks/useGenerateReport";
-import { useToast } from "../context/ToastContext";
+import useGenerateReport from "@/hooks/useGenerateReport";
+import { useToast } from "@/context/ToastContext";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
@@ -21,16 +21,25 @@ import InfoIcon from "@mui/icons-material/Info";
 
 const Home: React.FC = () => {
   const [resume, setResume] = useState<File | null>(null);
+  const [resumeText, setResumeText] = useState<string>(""); // New state for Gemini
   const [jobDescription, setJobDescription] = useState<string>("");
+
   const { generateReport, isLoading: isSubmitting } = useGenerateReport();
   const router = useRouter();
   const { addToast } = useToast();
 
-  const isFormValid = !!resume && jobDescription.trim().length >= 20;
+  const isFormValid = !!resume && !!resumeText && jobDescription.trim().length >= 20;
+
+  const handleUploadData = (file: File | null, text: string) => {
+    setResume(file);
+    setResumeText(text);
+  };
 
   const handleSubmit = async () => {
-    // Delegate to hook which handles saving and basic checks
-    if (!resume) {
+    localStorage.setItem("resumeText", resumeText);
+    localStorage.setItem("jobText", jobDescription);
+
+    if (!resume || !resumeText) {
       addToast("Resume Required - Please upload a resume file to proceed.", "error");
       return;
     }
@@ -41,14 +50,10 @@ const Home: React.FC = () => {
     }
 
     try {
-      const result = await generateReport(resume, jobDescription);
+      const result = await generateReport(resumeText, jobDescription);
 
       if (result.success) {
-        addToast(
-          `Form Submitted Successfully! (${result.details?.resumeName} | ${result.details?.jobLength} chars) Generating analysis...`,
-          "success",
-          3000
-        );
+        addToast(`Analysis Complete! Generating report...`, "success", 3000);
         setTimeout(() => {
           router.push("/report");
         }, 500);
@@ -56,14 +61,13 @@ const Home: React.FC = () => {
         addToast(`Failed to Process Resume - ${result.error || "Unknown error"}`, "error");
       }
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error("Unknown error");
-      const errorMsg = errorObj.message;
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
       addToast(`Failed to Process Resume - ${errorMsg}`, "error");
     }
   };
 
   return (
-    <Layout>
+    <MainLayout>
       <Box sx={{ mb: { xs: 3, sm: 4, md: 5 }, display: "flex", alignItems: "center", gap: 1.5 }}>
         <TipsAndUpdatesIcon
           sx={{ fontSize: { xs: "2rem", sm: "2.25rem", md: "2.5rem" }, color: "primary.main" }}
@@ -83,7 +87,7 @@ const Home: React.FC = () => {
         </Typography>
       </Box>
 
-      <UploadForm onResumeUpload={setResume} onJobDescriptionChange={setJobDescription} />
+      <UploadForm onResumeUpload={handleUploadData} onJobDescriptionChange={setJobDescription} />
 
       {/* Form Status Section */}
       <Card
@@ -208,7 +212,7 @@ const Home: React.FC = () => {
           {isSubmitting ? "Generating..." : "Generate Report"}
         </Button>
       </Box>
-    </Layout>
+    </MainLayout>
   );
 };
 

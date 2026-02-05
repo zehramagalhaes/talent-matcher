@@ -1,135 +1,38 @@
 import { useState } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-type GenerateResult = {
-  success: boolean;
-  error?: string;
-  details?: { resumeName: string; jobLength: number };
-};
+import axios from "axios";
+import { OptimizationResult } from "@/api/schemas/optimizationSchema";
+import { AnalyzeResponse } from "@/api/analyze/analyzeApi";
 
 const useGenerateReport = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [report, setReport] = useState<string>("");
+  const [report, setReport] = useState<OptimizationResult | null>(null);
 
-  const generateReport = async (resume: File, jobText: string): Promise<GenerateResult> => {
-    setError(null);
-
-    if (!resume) {
-      const msg = "Resume is required";
-      setError(msg);
-      return { success: false, error: msg };
-    }
-
-    if (!jobText || jobText.trim().length < 20) {
-      const msg = "Job description must be at least 20 characters";
-      setError(msg);
-      return { success: false, error: msg };
-    }
-
+  const generateReport = async (resumeText: string, jobDescription: string) => {
     setIsLoading(true);
     try {
-      const resumeText = await resume.text();
+      const response = await axios.post("/api/analyze", { resumeText, jobDescription });
+      const result: AnalyzeResponse = response.data;
+
+      // Store the actual analysis so the next page can just read it
+      localStorage.setItem("analysisResult", JSON.stringify(result));
+
+      // Also store these for the "Recover" feature
       localStorage.setItem("resumeText", resumeText);
-      localStorage.setItem("jobText", jobText);
+      localStorage.setItem("jobText", jobDescription);
 
-      setIsLoading(false);
-      return {
-        success: true,
-        details: { resumeName: resume.name, jobLength: jobText.length },
-      };
+      setReport(result.report || null);
+      return { success: true, data: result };
     } catch (err) {
-      const errObj = err instanceof Error ? err : new Error("Unknown error");
-      const msg = errObj.message;
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Unknown error");
+      return { success: false, error: err };
+    } finally {
       setIsLoading(false);
-      return { success: false, error: msg };
     }
   };
 
-  const analyzeWithAntiGravity = async (resumeText: string, jobDesc: string): Promise<void> => {
-    setError(null);
-
-    if (!resumeText || !jobDesc) {
-      const msg = "Resume and job description are required";
-      setError(msg);
-      throw new Error(msg);
-    }
-
-    setIsLoading(true);
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-      if (!apiKey) {
-        const msg = "API Key not configured";
-        setError(msg);
-        throw new Error(msg);
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-3.0-flash",
-        systemInstruction:
-          "You are the Anti-Gravity Agent. Your role is to strip away corporate bias and analyze resumes based purely on technical merit and job alignment. Provide a Tech Recruiter persona summary, a compatibility score (0-100), and specific bulleted improvements.",
-      });
-
-      const prompt = `JOB DESCRIPTION:
-${jobDesc}
-
-RESUME CONTENT:
-${resumeText}
-
-Generate:
-1. A tech_recruiter.md section describing the ideal persona for this role.
-2. A compatibility report with a score (0-100).
-3. A refined version of the resume's summary/skills.
-4. Specific, actionable improvements for better alignment.`;
-
-      const result = await model.generateContent(prompt);
-      const generatedReport = result.response.text();
-      setReport(generatedReport);
-      localStorage.setItem("analysisReport", generatedReport);
-
-      setIsLoading(false);
-    } catch (err) {
-      const errObj = err instanceof Error ? err : new Error("Unknown error");
-      const msg = errObj.message;
-      setError(msg);
-      setIsLoading(false);
-      throw errObj;
-    }
-  };
-
-  const downloadReport = (filename: string = "talent_match_analysis.md"): void => {
-    if (!report) {
-      setError("No report available to download");
-      return;
-    }
-
-    try {
-      const blob = new Blob([report], { type: "text/markdown" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      const errObj = err instanceof Error ? err : new Error("Download failed");
-      const msg = errObj.message;
-      setError(msg);
-    }
-  };
-
-  return {
-    generateReport,
-    analyzeWithAntiGravity,
-    downloadReport,
-    isLoading,
-    error,
-    report,
-  } as const;
+  return { generateReport, isLoading, error, report };
 };
 
 export default useGenerateReport;

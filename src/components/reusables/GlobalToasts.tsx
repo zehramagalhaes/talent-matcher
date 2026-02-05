@@ -1,5 +1,5 @@
 import { Stack, Alert, Snackbar } from "@mui/material";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "@/context/ToastContext";
 
 const GlobalToasts: React.FC = () => {
   const { toasts, removeToast } = useToast();
