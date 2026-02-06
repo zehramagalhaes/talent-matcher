@@ -10,8 +10,6 @@ import {
 } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { atomDark, prism } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -30,8 +28,6 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ message }) => {
     details: message,
   };
 
-  const syntaxStyle = theme.palette.mode === "dark" ? atomDark : prism;
-
   const handleCopyError = () => {
     navigator.clipboard.writeText(JSON.stringify(formattedError, null, 2));
     setCopied(true);
@@ -49,7 +45,6 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ message }) => {
         backdropFilter: "blur(10px)",
         position: "relative",
         overflow: "hidden",
-        // Red accent bar to match the Resume/Report style
         "&::before": {
           content: '""',
           position: "absolute",
@@ -105,32 +100,32 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ message }) => {
           {t("error.card.technical_details")}
         </Typography>
 
+        {/* REPLACED SyntaxHighlighter with a native MUI styled Box */}
         <Box
+          component="pre"
           sx={{
+            margin: 0,
+            padding: "20px",
+            fontSize: "0.85rem",
+            fontFamily: "'Fira Code', 'Roboto Mono', monospace",
             borderRadius: 4,
-            overflow: "hidden",
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
             border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
             boxShadow: "inset 0 2px 4px rgba(0,0,0,0.05)",
+            backgroundColor:
+              theme.palette.mode === "dark"
+                ? alpha(theme.palette.common.black, 0.4)
+                : alpha(theme.palette.common.white, 0.8),
+            color: theme.palette.text.primary,
+            // Styling the JSON keys vs values manually via CSS if needed,
+            // but plain text is safer for builds.
+            "& .json-key": { color: theme.palette.primary.main },
+            "& .json-string": { color: theme.palette.success.main },
           }}
         >
-          <SyntaxHighlighter
-            language="json"
-            style={syntaxStyle}
-            customStyle={{
-              margin: 0,
-              padding: "20px",
-              fontSize: "0.85rem",
-              backgroundColor:
-                theme.palette.mode === "dark"
-                  ? alpha(theme.palette.common.black, 0.3)
-                  : alpha(theme.palette.common.white, 0.5),
-              overflow: "auto",
-            }}
-            wrapLines={true}
-            wrapLongLines={true}
-          >
-            {JSON.stringify(formattedError, null, 2)}
-          </SyntaxHighlighter>
+          {JSON.stringify(formattedError, null, 2)}
         </Box>
       </CardContent>
     </Card>
