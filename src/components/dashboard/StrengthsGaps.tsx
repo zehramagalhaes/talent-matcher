@@ -1,18 +1,8 @@
 import React from "react";
-import {
-  Grid,
-  Paper,
-  Typography,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  useTheme,
-  alpha,
-  Box,
-} from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
+import { Grid, Typography, Box, Paper, useTheme, alpha } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StrengthsGapsProps {
   strengths: string[];
@@ -20,90 +10,111 @@ interface StrengthsGapsProps {
 }
 
 export const StrengthsGaps: React.FC<StrengthsGapsProps> = ({ strengths, gaps }) => {
-  const theme = useTheme(); // Access theme for mode-specific alpha values
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === "dark";
 
-  const renderSection = (title: string, items: string[], isStrength: boolean) => {
-    const color = isStrength ? theme.palette.success.main : theme.palette.error.main;
-    const Icon = isStrength ? CheckCircleIcon : ErrorIcon;
+  // High-contrast colors for text and icons
+  const successColor = isDarkMode ? theme.palette.success.light : theme.palette.success.dark;
+  const errorColor = isDarkMode ? theme.palette.error.light : theme.palette.error.dark;
 
-    return (
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            height: "100%",
-            borderRadius: 3,
-            border: "1px solid",
-            // Subtle theme-aware borders
-            borderColor: alpha(color, 0.3),
-            // Light tint for background to indicate status without visual noise
-            bgcolor: theme.palette.mode === "dark" ? alpha(color, 0.05) : alpha(color, 0.02),
-            transition: "transform 0.2s ease-in-out",
-            "&:hover": {
-              transform: "translateY(-2px)",
-              borderColor: alpha(color, 0.5),
-            },
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 800,
-              color: color, // Direct use of theme status colors
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              mb: 2,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            <Icon fontSize="medium" /> {title}
-          </Typography>
-
-          <List sx={{ p: 0 }}>
-            {items.map((item, index) => (
-              <ListItem
-                key={index}
-                disableGutters
-                sx={{
-                  alignItems: "flex-start",
-                  py: 1,
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      bgcolor: alpha(color, 0.6),
-                    }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item}
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    sx: {
-                      lineHeight: 1.6,
-                      color: "text.primary",
-                      fontWeight: 500,
-                    },
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-      </Grid>
-    );
-  };
+  const ListItem = ({ text, color }: { text: string; color: string }) => (
+    <Box sx={{ display: "flex", gap: 1.5, mb: 1.5, alignItems: "flex-start" }}>
+      <Box
+        sx={{
+          minWidth: 8,
+          height: 8,
+          borderRadius: "50%",
+          bgcolor: color,
+          mt: 0.9,
+          boxShadow: `0 0 8px ${alpha(color, 0.5)}`, // Adds a small "glow" to the bullet
+        }}
+      />
+      <Typography variant="body2" sx={{ lineHeight: 1.5, fontWeight: 500 }}>
+        {text}
+      </Typography>
+    </Box>
+  );
 
   return (
     <Grid container spacing={3} sx={{ mb: 6 }}>
-      {renderSection("Key Strengths", strengths, true)}
-      {renderSection("Identified Gaps", gaps, false)}
+      {/* Strengths Card */}
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            height: "100%",
+            border: "1px solid",
+            borderColor: alpha(successColor, 0.3),
+            bgcolor: isDarkMode ? alpha(successColor, 0.05) : alpha(successColor, 0.02), // Subtle tint
+            borderTop: `6px solid ${successColor}`, // Thicker accent for more color
+            transition: "transform 0.2s",
+            "&:hover": { transform: "translateY(-4px)" }, // Interactive feel
+          }}
+        >
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 800,
+              color: successColor,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.2,
+              mb: 3,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            <CheckCircleOutlineIcon /> {t("dashboard.strengths")}
+          </Typography>
+
+          <Box>
+            {strengths.map((s, i) => (
+              <ListItem key={i} text={s} color={successColor} />
+            ))}
+          </Box>
+        </Paper>
+      </Grid>
+
+      {/* Gaps Card */}
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            height: "100%",
+            border: "1px solid",
+            borderColor: alpha(errorColor, 0.3),
+            bgcolor: isDarkMode ? alpha(errorColor, 0.05) : alpha(errorColor, 0.02), // Subtle tint
+            borderTop: `6px solid ${errorColor}`,
+            transition: "transform 0.2s",
+            "&:hover": { transform: "translateY(-4px)" },
+          }}
+        >
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 800,
+              color: errorColor,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.2,
+              mb: 3,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            <ErrorOutlineIcon /> {t("dashboard.gaps")}
+          </Typography>
+
+          <Box>
+            {gaps.map((g, i) => (
+              <ListItem key={i} text={g} color={errorColor} />
+            ))}
+          </Box>
+        </Paper>
+      </Grid>
     </Grid>
   );
 };

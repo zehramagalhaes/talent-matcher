@@ -1,8 +1,9 @@
-import { Stack, Alert, Snackbar } from "@mui/material";
+import { Stack, Alert, Snackbar, alpha, useTheme } from "@mui/material";
 import { useToast } from "@/context/ToastContext";
 
 const GlobalToasts: React.FC = () => {
   const { toasts, removeToast } = useToast();
+  const theme = useTheme();
 
   // Show single toast for simplicity, or use Stack for multiple
   if (toasts.length === 0) return null;
@@ -27,9 +28,13 @@ const GlobalToasts: React.FC = () => {
             severity={toast.severity}
             onClose={() => removeToast(toast.id)}
             sx={{
-              borderRadius: "24px",
-              pointerEvents: "auto",
-              boxShadow: 2,
+              borderRadius: "18px",
+              fontWeight: 600,
+              bgcolor: alpha(theme.palette[toast.severity].main, 0.9),
+              color: "#fff",
+              backdropFilter: "blur(10px)",
+              boxShadow: `0 10px 30px ${alpha(theme.palette[toast.severity].main, 0.4)}`,
+              "& .MuiAlert-icon": { color: "#fff" },
               animation: "slideIn 0.3s ease-in-out",
               "@keyframes slideIn": {
                 from: {
@@ -64,8 +69,13 @@ const GlobalToasts: React.FC = () => {
         onClose={() => removeToast(toast.id)}
         severity={toast.severity}
         sx={{
-          borderRadius: "24px",
-          boxShadow: 2,
+          borderRadius: "18px",
+          fontWeight: 600,
+          bgcolor: alpha(theme.palette[toast.severity].main, 0.9),
+          color: "#fff",
+          backdropFilter: "blur(10px)",
+          boxShadow: `0 10px 30px ${alpha(theme.palette[toast.severity].main, 0.4)}`,
+          "& .MuiAlert-icon": { color: "#fff" },
         }}
       >
         {toast.message}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Divider, Chip, Alert, Grid, Typography, Paper } from "@mui/material";
+import { Box, Divider, Chip } from "@mui/material";
 import { OptimizationResult } from "@/api/schemas/optimizationSchema";
 import { useToast } from "@/context/ToastContext";
 import { generateResumePDF } from "@/utils/pdfGenerator";
@@ -8,6 +8,8 @@ import { DashboardHeader } from "./DashboardHeader";
 import { InsightsGrid } from "./InsightsGrid";
 import { StrengthsGaps } from "./StrengthsGaps";
 import { ImprovementModal } from "./ImprovementModal";
+import { useTranslation } from "@/hooks/useTranslation";
+import ExperienceBridge from "./ExperienceBridge";
 
 interface SkillGroup {
   category: string;
@@ -16,49 +18,105 @@ interface SkillGroup {
 
 export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ data }) => {
   const { addToast } = useToast();
+  const { t, locale } = useTranslation();
 
-  // 1. Manage strategy selection
+  // State Management
   const [strategy, setStrategy] = useState<"compact" | "detailed">(data.recommended_strategy);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-
-  // 2. Maintain a local copy of both versions to allow editing/improvements
-  // without triggering the "Effect" render loop.
   const [localVersions, setLocalVersions] = useState({
     compact: data.optimized_versions.compact,
     detailed: data.optimized_versions.detailed,
   });
-
-  // 3. Maintain local scores to reflect improvements
   const [localScores, setLocalScores] = useState({
     compact: data.match_score_compact,
     detailed: data.match_score_detailed,
   });
-
   const [pendingImprovement, setPendingImprovement] = useState<string | null>(null);
 
-  // 4. Derived State: These variables update automatically when strategy or local state changes
-  // This eliminates the need for useEffect
+  // Derived Values
   const currentResume = localVersions[strategy];
   const currentScore = localScores[strategy];
 
+  /** * DOWNLOAD HANDLER:
+   * Uses local state to ensure all applied additions are included in the PDF.
+   */
+  const handleDownload = () => {
+    generateResumePDF(localVersions[strategy], strategy, locale);
+    addToast(t("common.download"), "info");
+  };
+
+  /**
+   * RESET HANDLER:
+   * Reverts local modifications back to initial API state.
+   */
+  const handleReset = () => {
+    setLocalVersions({
+      compact: data.optimized_versions.compact,
+      detailed: data.optimized_versions.detailed,
+    });
+    setLocalScores({
+      compact: data.match_score_compact,
+      detailed: data.match_score_detailed,
+    });
+  };
+
+  /**
+   * EXPERIENCE: Cleans instructional text (extracts quoted content) and adds to resume.
+   */
+  const handleExperienceImprovement = (fullText: string) => {
+    let suggestion = fullText;
+    const addIndex = fullText.indexOf("add: ");
+    if (addIndex !== -1) {
+      suggestion = fullText.substring(addIndex + 5);
+    }
+    // Removes surrounding quotes and trims whitespace
+    suggestion = suggestion.replace(/^['"]|['"]$/g, "").trim();
+
+    setLocalVersions((prev) => {
+      const activeResume = prev[strategy];
+      const newExperience = JSON.parse(JSON.stringify(activeResume.experience || []));
+
+      if (newExperience.length > 0) {
+        if (!newExperience[0].bullets_primary.includes(suggestion)) {
+          newExperience[0].bullets_primary.unshift(suggestion);
+        }
+      }
+
+      return {
+        ...prev,
+        [strategy]: { ...activeResume, experience: newExperience },
+      };
+    });
+
+    setLocalScores((prev) => ({
+      ...prev,
+      [strategy]: Math.min(prev[strategy] + 5, 100),
+    }));
+  };
+
+  /** * SKILLS: Adds keywords to the most relevant existing category.
+   */
   const confirmImprovement = () => {
     if (!pendingImprovement) return;
 
-    // Update the specific version being viewed
     setLocalVersions((prev) => {
       const activeResume = prev[strategy];
-      // Type-safe deep copy of skills
-      const newSkills: SkillGroup[] = JSON.parse(JSON.stringify(activeResume.skills || []));
+      const newSkills = JSON.parse(JSON.stringify(activeResume.skills || []));
 
-      let targetCat = newSkills.find((s) => s.category === "Additional Skills");
+      let targetGroup = newSkills.find(
+        (group: SkillGroup) =>
+          group.category.toLowerCase().includes("skill") ||
+          group.category.toLowerCase().includes("technology") ||
+          group.category.toLowerCase().includes("tools")
+      );
 
-      if (!targetCat) {
-        targetCat = { category: "Additional Skills", items: [] };
-        newSkills.push(targetCat);
+      if (!targetGroup && newSkills.length > 0) targetGroup = newSkills[0];
+      if (!targetGroup) {
+        targetGroup = { category: t("common.status"), items: [] };
+        newSkills.push(targetGroup);
       }
 
-      if (!targetCat.items.includes(pendingImprovement)) {
-        targetCat.items.push(pendingImprovement);
+      if (!targetGroup.items.includes(pendingImprovement)) {
+        targetGroup.items.push(pendingImprovement);
       }
 
       return {
@@ -67,13 +125,8 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
       };
     });
 
-    // Update score for the current strategy
-    setLocalScores((prev) => ({
-      ...prev,
-      [strategy]: Math.min(prev[strategy] + 2, 100),
-    }));
-
-    addToast(`Added ${pendingImprovement}!`, "success");
+    setLocalScores((prev) => ({ ...prev, [strategy]: Math.min(prev[strategy] + 2, 100) }));
+    addToast(t("common.confirm"), "success");
     setPendingImprovement(null);
   };
 
@@ -82,74 +135,45 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
       <DashboardHeader
         strategy={strategy}
         setStrategy={setStrategy}
-        isPreviewMode={isPreviewMode}
-        setIsPreviewMode={setIsPreviewMode}
-        onDownload={() => generateResumePDF(currentResume, strategy)}
-        // Pass the local (potentially edited) versions to the header/preview
+        isPreviewMode={false}
+        onDownload={handleDownload}
+        onReset={handleReset}
         compactData={localVersions.compact}
         detailedData={localVersions.detailed}
       />
 
-      {data.title_suggestion && (
-        <Alert severity="info" sx={{ mb: 4, borderRadius: 2, borderLeft: "4px solid #0288d1" }}>
-          <strong>Title Suggestion:</strong> {data.title_suggestion}
-        </Alert>
-      )}
+      {/* Main Analysis Section */}
+      <InsightsGrid
+        resume={currentResume}
+        score={currentScore}
+        notes={data.scoring_rubric.overall_notes}
+        keywords={data.keywords_to_add}
+        viewType={strategy}
+        onAddKeyword={(kw) => setPendingImprovement(kw)}
+      />
 
-      {!isPreviewMode && (
-        <>
-          <InsightsGrid
-            score={currentScore}
-            strategy={strategy}
-            notes={data.scoring_rubric.overall_notes}
-            keywords={data.keywords_to_add}
-            onAddKeyword={setPendingImprovement}
+      <StrengthsGaps strengths={data.strengths} gaps={data.gaps} />
+
+      <ExperienceBridge
+        suggestions={data.experience_bridge_suggestions}
+        onAdd={handleExperienceImprovement}
+      />
+
+      <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
+        <Divider>
+          <Chip
+            label={t("common.status").toUpperCase()}
+            size="small"
+            sx={{ fontWeight: "bold", px: 2 }}
           />
-          <StrengthsGaps strengths={data.strengths} gaps={data.gaps} />
-          <Divider sx={{ mb: 4 }}>
-            <Chip label="RESUME PREVIEW" size="small" />
-          </Divider>
-          <OptimizedResume resume={currentResume} />
-        </>
-      )}
+        </Divider>
+      </Box>
 
-      {isPreviewMode && (
-        <Grid
-          container
-          spacing={0}
-          sx={{ border: "1px solid", borderColor: "divider", borderRadius: 4, overflow: "hidden" }}
-        >
-          {(["compact", "detailed"] as const).map((key, idx) => (
-            <Grid
-              key={key}
-              size={{ xs: 12, md: 6 }}
-              sx={{ borderRight: idx === 0 ? { md: "1px solid" } : "none", borderColor: "divider" }}
-            >
-              <Box sx={{ p: 1.5, textAlign: "center" }}>
-                <Typography variant="overline" fontWeight="900">
-                  {key.toUpperCase()} Version
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  p: { xs: 2, md: 4 },
-                  height: "75vh",
-                  overflowY: "auto",
-                  bgcolor: "action.hover",
-                }}
-              >
-                <Paper elevation={4} sx={{ p: 4, minHeight: "100%" }}>
-                  <OptimizedResume resume={localVersions[key]} />
-                </Paper>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+      {/* Live Preview Section */}
+      <OptimizedResume resume={currentResume} />
 
       <ImprovementModal
         keyword={pendingImprovement}
-        strategy={strategy}
         onClose={() => setPendingImprovement(null)}
         onConfirm={confirmImprovement}
       />

@@ -9,7 +9,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  const { resumeText, jobDescription } = req.body;
+  // Destructure language from the body (passed from your useTranslation/Home state)
+  const { resumeText, jobDescription, language } = req.body;
 
   try {
     const model = genAI.getGenerativeModel({
@@ -19,7 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    const prompt = buildPrompt(resumeText, jobDescription);
+    // Pass the language to the prompt builder
+    const prompt = buildPrompt(resumeText, jobDescription, language || "en");
+
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
@@ -33,14 +36,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rawData = JSON.parse(cleanedJson);
 
     // 3. Validation with Hallucination Check
-    // We use .safeParse to handle errors gracefully without crashing the catch block immediately
     const validation = OptimizationSchema.safeParse(rawData);
 
     if (!validation.success) {
       console.error("ZOD_VALIDATION_FAILURE:", validation.error.format());
       return res.status(422).json({
         error: "AI Response Format Invalid",
-        message: "The AI hallucinated or missed required fields like match_score_compact.",
+        message: "The AI hallucinated or missed required fields.",
         details: validation.error.errors,
       });
     }
