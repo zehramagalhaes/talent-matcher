@@ -1,4 +1,4 @@
-import React, { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
 import dynamic from "next/dynamic";
 import {
   Typography,
@@ -209,6 +209,14 @@ function HomeContent() {
                 fontSize: "1rem",
                 color: "common.white",
                 background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                "&.Mui-disabled": {
+                  color: alpha(theme.palette.common.white, 0.5),
+                  background: alpha(theme.palette.primary.main, 0.3),
+                  boxShadow: "none",
+                  pointerEvents: "none",
+                  cursor: "not-allowed",
+                },
+                transition: "all 0.2s ease-in-out",
               }}
             >
               {isSubmitting || isPending ? t("loading.generating") : t("loading.generate_report")}
