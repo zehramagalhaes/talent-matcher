@@ -3,14 +3,17 @@ import { CssBaseline } from "@mui/material";
 import { CustomThemeProvider } from "@/context/ThemeContext";
 import { ToastProvider } from "@/context/ToastContext";
 import GlobalToasts from "@/components/reusables/GlobalToasts";
+import { AppIntlProvider } from "@/context/IntlContext";
 
 const MyApp = ({ Component, pageProps }: AppProps) => (
   <CustomThemeProvider>
-    <CssBaseline />
-    <ToastProvider>
-      <GlobalToasts />
-      <Component {...pageProps} />
-    </ToastProvider>
+    <AppIntlProvider>
+      <CssBaseline />
+      <ToastProvider>
+        <GlobalToasts />
+        <Component {...pageProps} />
+      </ToastProvider>
+    </AppIntlProvider>
   </CustomThemeProvider>
 );
 

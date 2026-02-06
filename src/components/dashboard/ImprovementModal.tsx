@@ -1,50 +1,59 @@
 import React from "react";
-import { Modal, Backdrop, Fade, Box, Stack, Typography, Button } from "@mui/material";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  alpha,
+  useTheme,
+} from "@mui/material";
+import { useTranslation } from "@/hooks/useTranslation";
 
-interface Props {
+interface ModalProps {
   keyword: string | null;
-  strategy: string;
   onClose: () => void;
   onConfirm: () => void;
 }
 
-export const ImprovementModal: React.FC<Props> = ({ keyword, strategy, onClose, onConfirm }) => (
-  <Modal open={!!keyword} onClose={onClose} closeAfterTransition slots={{ backdrop: Backdrop }}>
-    <Fade in={!!keyword}>
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 400,
-          bgcolor: "background.paper",
-          boxShadow: 24,
-          p: 4,
-          borderRadius: 2,
-          textAlign: "center",
-        }}
-      >
-        <Stack alignItems="center" spacing={2}>
-          <AutoFixHighIcon color="secondary" sx={{ fontSize: 40 }} />
-          <Typography variant="h6" fontWeight="bold">
-            Apply to {strategy} Resume?
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Adding <strong>{keyword}</strong> will tailor your skills section and increase the match
-            score for this version.
-          </Typography>
-          <Stack direction="row" spacing={2} sx={{ width: "100%", mt: 2 }}>
-            <Button fullWidth variant="outlined" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button fullWidth variant="contained" onClick={onConfirm}>
-              Confirm
-            </Button>
-          </Stack>
-        </Stack>
-      </Box>
-    </Fade>
-  </Modal>
-);
+export const ImprovementModal: React.FC<ModalProps> = ({ keyword, onClose, onConfirm }) => {
+  const { t } = useTranslation();
+  const theme = useTheme();
+
+  return (
+    <Dialog
+      PaperProps={{
+        sx: {
+          borderRadius: 6,
+          p: 1,
+          backdropFilter: "blur(10px)",
+          bgcolor: alpha(theme.palette.background.paper, 0.9),
+        },
+      }}
+      open={Boolean(keyword)}
+      onClose={onClose}
+    >
+      <DialogTitle sx={{ fontWeight: 900, fontSize: "1.5rem" }}>
+        {t("modal.addSkill.title")}
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          {t("modal.addSkill.body", { keyword: <strong>{keyword}</strong> })}
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} color="inherit">
+          {t("common.cancel")}
+        </Button>
+        <Button
+          variant="contained"
+          onClick={onConfirm}
+          sx={{ borderRadius: 3, px: 3, fontWeight: 800 }}
+        >
+          {t("common.confirm")}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

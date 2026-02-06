@@ -1,32 +1,48 @@
 import { useState } from "react";
-
 import axios from "axios";
 import { OptimizationResult } from "@/api/schemas/optimizationSchema";
-import { AnalyzeResponse } from "@/api/analyze/analyzeApi";
 
 const useGenerateReport = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<OptimizationResult | null>(null);
 
-  const generateReport = async (resumeText: string, jobDescription: string) => {
+  /**
+   * @param resumeText - Raw text extracted from file
+   * @param jobDescription - Raw text from the job field
+   * @param language - The current locale code (e.g., 'en' or 'pt')
+   */
+  const generateReport = async (resumeText: string, jobDescription: string, language: string) => {
     setIsLoading(true);
-    try {
-      const response = await axios.post("/api/analyze", { resumeText, jobDescription });
-      const result: AnalyzeResponse = response.data;
+    setError(null); // Reset error state on new attempt
 
-      // Store the actual analysis so the next page can just read it
+    try {
+      // Pass resumeText, jobDescription, and language to the API
+      const response = await axios.post("/api/analyze", {
+        resumeText,
+        jobDescription,
+        language,
+      });
+
+      const result: OptimizationResult = response.data;
+
+      // 1. Store the actual analysis so the next page can just read it
       localStorage.setItem("analysisResult", JSON.stringify(result));
 
-      // Also store these for the "Recover" feature
+      // 2. Also store these for the "Recover" feature
       localStorage.setItem("resumeText", resumeText);
       localStorage.setItem("jobText", jobDescription);
+      localStorage.setItem("selectedLanguage", language); // Persist chosen language
 
-      setReport(result.report || null);
+      setReport(result);
       return { success: true, data: result };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-      return { success: false, error: err };
+      const errorMessage = axios.isAxiosError(err)
+        ? err.response?.data?.message || err.message
+        : "Unknown error";
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }

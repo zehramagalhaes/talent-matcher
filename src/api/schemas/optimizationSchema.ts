@@ -26,7 +26,6 @@ const ResumeStructure = z.object({
     })
   ),
   education: z.array(z.string()).default([]),
-  // Added Certifications to the individual resume version
   certifications: z.array(z.string()).default([]),
 });
 
@@ -39,6 +38,14 @@ export const OptimizationSchema = z.object({
   strengths: z.array(z.string()),
   gaps: z.array(z.string()),
   keywords_to_add: z.array(z.string()),
+  experience_bridge_suggestions: z
+    .array(
+      z.object({
+        context: z.string(),
+        suggestion: z.string(),
+      })
+    )
+    .default([]),
   scoring_rubric: z.object({
     overall_notes: z.string(),
   }),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import {
   Typography,
   Button,
@@ -7,6 +7,11 @@ import {
   CardContent,
   CircularProgress,
   Stack,
+  Divider,
+  alpha,
+  useTheme,
+  Backdrop,
+  Fade,
   Alert,
 } from "@mui/material";
 import MainLayout from "@/components/reusables/Layout";
@@ -14,204 +19,232 @@ import UploadForm from "@/components/UploadForm";
 import { useRouter } from "next/router";
 import useGenerateReport from "@/hooks/useGenerateReport";
 import { useToast } from "@/context/ToastContext";
+import { useTranslation } from "@/hooks/useTranslation";
+import { LanguageToggle } from "@/components/reusables/LanguageToggle";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
-import InfoIcon from "@mui/icons-material/Info";
+import LanguageIcon from "@mui/icons-material/Language";
+import HistoryIcon from "@mui/icons-material/History";
 
 const Home: React.FC = () => {
-  const [resume, setResume] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState<string>(""); // New state for Gemini
-  const [jobDescription, setJobDescription] = useState<string>("");
-
-  const { generateReport, isLoading: isSubmitting } = useGenerateReport();
+  const theme = useTheme();
   const router = useRouter();
   const { addToast } = useToast();
+  const { t, locale } = useTranslation();
+  const { generateReport, isLoading: isSubmitting } = useGenerateReport();
 
-  const isFormValid = !!resume && !!resumeText && jobDescription.trim().length >= 20;
+  const [isPending, startTransition] = useTransition();
+  const [resumeText, setResumeText] = useState<string>("");
+  const [jobDescription, setJobDescription] = useState<string>("");
 
-  const handleUploadData = (file: File | null, text: string) => {
-    setResume(file);
-    setResumeText(text);
-  };
+  const isEditMode = router.isReady && router.query.edit === "true";
 
-  const handleSubmit = async () => {
-    localStorage.setItem("resumeText", resumeText);
-    localStorage.setItem("jobText", jobDescription);
+  useEffect(() => {
+    if (!router.isReady) return;
 
-    if (!resume || !resumeText) {
-      addToast("Resume Required - Please upload a resume file to proceed.", "error");
-      return;
+    const hasResult = localStorage.getItem("analysisResult");
+    if (hasResult && !isEditMode) {
+      router.replace("/report");
     }
+  }, [router.isReady, isEditMode, router]);
 
-    if (!jobDescription || jobDescription.trim().length < 20) {
-      addToast("Job Description Too Short - Please enter at least 20 characters.", "error");
-      return;
-    }
+  const isFormValid = resumeText.trim().length > 50 && jobDescription.trim().length >= 20;
 
-    try {
-      const result = await generateReport(resumeText, jobDescription);
+  const handleSubmit = () => {
+    startTransition(async () => {
+      localStorage.setItem("resumeText", resumeText);
+      localStorage.setItem("jobText", jobDescription);
 
-      if (result.success) {
-        addToast(`Analysis Complete! Generating report...`, "success", 3000);
-        setTimeout(() => {
+      try {
+        const result = await generateReport(resumeText, jobDescription, locale);
+        if (result.success) {
+          addToast(t("toast.generated_success"), "success", 3000);
           router.push("/report");
-        }, 500);
-      } else {
-        addToast(`Failed to Process Resume - ${result.error || "Unknown error"}`, "error");
+        } else {
+          addToast(`Error: ${result.error}`, "error");
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        addToast("Failed to connect to server", "error");
+        throw error; // Re-throw for potential higher-level handling/logging
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      addToast(`Failed to Process Resume - ${errorMsg}`, "error");
-    }
+    });
   };
+
+  if (!router.isReady) {
+    return (
+      <Backdrop open={true} sx={{ bgcolor: "background.default", zIndex: 10 }}>
+        <CircularProgress color="primary" size={50} />
+      </Backdrop>
+    );
+  }
 
   return (
     <MainLayout>
-      <Box sx={{ mb: { xs: 3, sm: 4, md: 5 }, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <TipsAndUpdatesIcon
-          sx={{ fontSize: { xs: "2rem", sm: "2.25rem", md: "2.5rem" }, color: "primary.main" }}
-        />
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 700, mb: 0, fontSize: { xs: "1.75rem", sm: "2rem", md: "2.125rem" } }}
-        >
-          TalentMatcher
-        </Typography>
-        <Typography
-          variant="body1"
-          color="textSecondary"
-          sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
-        >
-          Analyze how well your resume matches the job description
-        </Typography>
-      </Box>
+      <Fade in={true} timeout={600}>
+        <Box>
+          {/* RECOVERY BANNER */}
+          {isEditMode && (
+            <Alert
+              icon={<HistoryIcon fontSize="inherit" />}
+              severity="info"
+              sx={{
+                mb: 3,
+                borderRadius: 3,
+                fontWeight: 600,
+                border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                bgcolor: alpha(theme.palette.info.main, 0.05),
+              }}
+            >
+              {t("home.editMode.notice")}
+            </Alert>
+          )}
 
-      <UploadForm onResumeUpload={handleUploadData} onJobDescriptionChange={setJobDescription} />
-
-      {/* Form Status Section */}
-      <Card
-        elevation={0}
-        sx={{
-          mt: { xs: 2.5, sm: 3, md: 4 },
-          mb: { xs: 2, sm: 2.5, md: 3 },
-          backgroundColor: isFormValid ? "success.50" : "info.50",
-          border: "1px solid",
-          borderColor: isFormValid ? "success.200" : "info.200",
-        }}
-      >
-        <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 2.5 } }}>
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={{ xs: 1.5, sm: 2, md: 2.5 }}
-            alignItems={{ xs: "flex-start", sm: "center" }}
-            justifyContent="space-between"
-          >
+          {/* HEADER */}
+          <Box sx={{ mb: 5, display: "flex", alignItems: "center", gap: 2 }}>
+            <TipsAndUpdatesIcon sx={{ fontSize: "2.5rem", color: "primary.main" }} />
             <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 700,
-                  mb: 1,
-                  textTransform: "uppercase",
-                  fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" },
-                  letterSpacing: "0.5px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-              >
-                <CheckCircleIcon sx={{ fontSize: "1rem" }} />
-                Form Status
+              <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: "-0.04em" }}>
+                TalentMatcher
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1, sm: 1.5, md: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                  <CheckCircleIcon
-                    sx={{
-                      color: resume ? "success.main" : "action.disabled",
-                      fontSize: { xs: 16, sm: 18, md: 20 },
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, fontSize: { xs: "0.8rem", sm: "0.875rem", md: "1rem" } }}
-                  >
-                    Resume: {resume ? resume.name : "Pending"}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                  <CheckCircleIcon
-                    sx={{
-                      color:
-                        jobDescription.trim().length >= 20 ? "success.main" : "action.disabled",
-                      fontSize: { xs: 16, sm: 18, md: 20 },
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 500, fontSize: { xs: "0.8rem", sm: "0.875rem", md: "1rem" } }}
-                  >
-                    Job: {jobDescription.trim().length >= 20 ? "Complete" : "Incomplete"}
-                  </Typography>
-                </Box>
-              </Stack>
+              <Typography variant="body1" color="textSecondary" sx={{ fontWeight: 600 }}>
+                {t("dashboard.header.description")?.split(".")[0]}
+              </Typography>
             </Box>
-          </Stack>
-        </CardContent>
-      </Card>
+          </Box>
 
-      {!isFormValid && (
-        <Alert
-          severity="info"
-          sx={{
-            mb: 2.5,
-            fontSize: { xs: "0.8rem", sm: "0.9rem", md: "0.95rem" },
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-          }}
-          icon={<InfoIcon />}
-        >
-          Please complete all fields above to generate your report.
-        </Alert>
-      )}
+          {/* DISCLAIMER CARD */}
+          <Card
+            elevation={0}
+            sx={{
+              mb: 4,
+              p: 1,
+              borderRadius: 4,
+              bgcolor: alpha(theme.palette.background.paper, 0.4),
+              backdropFilter: "blur(20px)",
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            }}
+          >
+            <CardContent>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={4} alignItems="center">
+                <Box sx={{ flexShrink: 0 }}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={800}
+                    sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}
+                  >
+                    <LanguageIcon fontSize="small" color="primary" /> {t("home.disclaimer.title")}
+                  </Typography>
+                  <LanguageToggle />
+                </Box>
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ display: { xs: "none", md: "block" } }}
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ lineHeight: 1.7, fontWeight: 500 }}
+                >
+                  <strong>Disclaimer:</strong> {t("home.disclaimer.body")}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
 
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1.5,
-          justifyContent: { xs: "center", sm: "flex-end" },
-          mt: { xs: 2.5, sm: 3, md: 4 },
-        }}
-      >
-        <Button
-          variant="contained"
-          color="primary"
-          size="large"
-          onClick={handleSubmit}
-          disabled={!isFormValid || isSubmitting}
-          endIcon={
-            isSubmitting ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardIcon />
-          }
-          sx={{
-            px: { xs: 2, sm: 3, md: 4 },
-            py: { xs: 1, sm: 1.25, md: 1.5 },
-            fontSize: { xs: "0.8rem", sm: "0.9rem", md: "1rem" },
-            fontWeight: 600,
-            transition: "all 0.3s ease",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            width: { xs: "100%", sm: "auto" },
-            "&:hover:not(:disabled)": {
-              transform: "translateX(4px)",
-            },
-          }}
-        >
-          {isSubmitting ? "Generating..." : "Generate Report"}
-        </Button>
-      </Box>
+          <UploadForm
+            onResumeUpload={(_, text) => setResumeText(text)}
+            onJobDescriptionChange={setJobDescription}
+          />
+
+          {/* STATUS BAR */}
+          <Box
+            sx={{
+              mt: 4,
+              p: 2.5,
+              borderRadius: 4,
+              display: "flex",
+              gap: 4,
+              flexWrap: "wrap",
+              bgcolor: alpha(theme.palette.background.paper, 0.3),
+              border: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <CheckCircleIcon
+                sx={{
+                  fontSize: 22,
+                  color: resumeText.length > 50 ? "success.main" : "action.disabled",
+                  filter:
+                    resumeText.length > 50
+                      ? `drop-shadow(0 0 8px ${alpha(theme.palette.success.main, 0.4)})`
+                      : "none",
+                }}
+              />
+              <Typography variant="body2" fontWeight={800}>
+                {t("home.form.resume_label")}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <CheckCircleIcon
+                sx={{
+                  fontSize: 22,
+                  color: jobDescription.length >= 20 ? "success.main" : "action.disabled",
+                  filter:
+                    jobDescription.length >= 20
+                      ? `drop-shadow(0 0 8px ${alpha(theme.palette.success.main, 0.4)})`
+                      : "none",
+                }}
+              />
+              <Typography variant="body2" fontWeight={800}>
+                {t("home.form.job_label")}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* ACTION BUTTON */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleSubmit}
+              disabled={!isFormValid || isSubmitting || isPending}
+              endIcon={
+                isSubmitting || isPending ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <ArrowForwardIcon />
+                )
+              }
+              sx={{
+                px: 6,
+                py: 2,
+                borderRadius: 4,
+                fontWeight: 900,
+                textTransform: "none",
+                fontSize: "1rem",
+                // FIXED COLOR: Ensure text is explicitly white/contrast
+                color: theme.palette.common.white,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                boxShadow: `0 10px 25px -5px ${alpha(theme.palette.primary.main, 0.4)}`,
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: `0 15px 30px -5px ${alpha(theme.palette.primary.main, 0.5)}`,
+                  color: theme.palette.common.white,
+                },
+                "&:disabled": {
+                  bgcolor: alpha(theme.palette.action.disabledBackground, 0.1),
+                  color: alpha(theme.palette.common.white, 0.5),
+                },
+              }}
+            >
+              {isSubmitting || isPending ? t("loading.generating") : t("loading.generate_report")}
+            </Button>
+          </Box>
+        </Box>
+      </Fade>
     </MainLayout>
   );
 };

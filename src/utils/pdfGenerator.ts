@@ -1,7 +1,12 @@
 import { jsPDF } from "jspdf";
 import { ResumeData } from "@/api/schemas/optimizationSchema";
+import { messages, Locale } from "@/locales/messages";
+import { detectLanguage } from "./languageUtils";
 
-export const generateResumePDF = (resume: ResumeData, strategy: string) => {
+/**
+ * Generates a professional PDF resume with consistent skill styling.
+ */
+export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLocale?: Locale) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -9,16 +14,18 @@ export const generateResumePDF = (resume: ResumeData, strategy: string) => {
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  // Accessibility Color Palette
-  const COLOR_PRIMARY = [0, 0, 0] as const; // Pure Black for headers/body
-  const COLOR_SECONDARY = [66, 66, 66] as const; // High-contrast charcoal for sub-info
-  const COLOR_LINK = [0, 86, 179] as const; // Accessible Blue
-  const COLOR_DIVIDER = [200, 200, 200] as const; // Light Gray for dividers
+  const detectedLocale: Locale = detectLanguage(resume.languages) ? "pt" : "en";
+  const activeLocale = forcedLocale || detectedLocale;
+  const t = messages[activeLocale];
 
-  // Standardized Typography
+  const COLOR_PRIMARY = [25, 118, 210] as const;
+  const COLOR_TEXT_MAIN = [33, 33, 33] as const;
+  const COLOR_TEXT_SECONDARY = [102, 102, 102] as const;
+  const COLOR_DIVIDER = [225, 235, 245] as const;
+  const COLOR_LINK = [25, 118, 210] as const;
+
   const FONT_SIZE_BODY = 10;
-  const FONT_SIZE_HEADER = 11;
-  const LINE_HEIGHT = 5;
+  const LINE_HEIGHT = 5.5;
 
   const ensureProtocol = (url: string | null | undefined) => {
     const trimmed = url?.trim();
@@ -35,58 +42,58 @@ export const generateResumePDF = (resume: ResumeData, strategy: string) => {
     return false;
   };
 
-  const drawSectionHeader = (text: string, initialContentHeight: number = 10) => {
-    checkPageBreak(12 + initialContentHeight);
+  const drawSectionHeader = (text: string) => {
+    checkPageBreak(15);
     y += 4;
     doc
       .setFont("helvetica", "bold")
-      .setFontSize(FONT_SIZE_HEADER)
+      .setFontSize(10)
       .setTextColor(...COLOR_PRIMARY);
+
     doc.text(text.toUpperCase(), margin, y, { charSpace: 0.5 });
-    doc.setLineWidth(0.25);
+    doc.setLineWidth(0.5);
     doc.setDrawColor(...COLOR_DIVIDER);
-    doc.line(margin, y + 1.5, pageWidth - margin, y + 1.5);
-    y += 8;
+    doc.line(margin, y + 2, pageWidth - margin, y + 2);
+    y += 10;
   };
 
-  // --- 1. HEADER (High Contrast) ---
+  // --- 1. TOP BAR ---
+  doc.setDrawColor(...COLOR_PRIMARY);
+  doc.setLineWidth(2);
+  doc.line(0, 0, pageWidth, 0);
+
+  // --- 2. HEADER ---
   doc
     .setFont("helvetica", "bold")
-    .setFontSize(22)
-    .setTextColor(...COLOR_PRIMARY);
-  doc.text(resume.name?.toUpperCase() ?? "NAME NOT PROVIDED", pageWidth / 2, y, {
-    align: "center",
-  });
-  y += 8;
+    .setFontSize(16)
+    .setTextColor(...COLOR_TEXT_MAIN);
+  const nameText = resume.name?.toUpperCase() ?? "";
+  const nameLines = doc.splitTextToSize(nameText, contentWidth);
+  doc.text(nameLines, pageWidth / 2, y + 5, { align: "center" });
+  y += nameLines.length * 7 + 8;
 
-  // Title: Darkened for better readability
-  doc
-    .setFontSize(12)
-    .setFont("helvetica", "normal")
-    .setTextColor(...COLOR_SECONDARY);
-  doc.text(resume.title ?? "", pageWidth / 2, y, { align: "center" });
-  y += 7;
+  doc.setFontSize(11).setTextColor(...COLOR_PRIMARY);
+  const titleText = resume.title?.toUpperCase() ?? "";
+  const titleLines = doc.splitTextToSize(titleText, contentWidth);
+  doc.text(titleLines, pageWidth / 2, y, { align: "center", charSpace: 0.5 });
+  y += titleLines.length * 6 + 4;
 
-  // --- 2. CONTACT INFO (Improved Contrast & Bullet Spacing) ---
+  // --- 3. CONTACT INFO ---
   const contactInfo = [
-    resume.location ? { text: resume.location, isLink: false } : null,
-    resume.phone ? { text: resume.phone, isLink: false } : null,
-    resume.email
-      ? { text: resume.email, isLink: true, url: ensureProtocol(`mailto:${resume.email}`) }
-      : null,
-    resume.linkedin
-      ? { text: "LinkedIn", isLink: true, url: ensureProtocol(resume.linkedin) }
-      : null,
-    resume.github ? { text: "GitHub", isLink: true, url: ensureProtocol(resume.github) } : null,
+    resume.location ? { text: resume.location } : null,
+    resume.phone ? { text: resume.phone } : null,
+    resume.email ? { text: resume.email, url: ensureProtocol(`mailto:${resume.email}`) } : null,
+    resume.linkedin ? { text: "LinkedIn", url: ensureProtocol(resume.linkedin) } : null,
+    resume.github ? { text: "GitHub", url: ensureProtocol(resume.github) } : null,
     resume.portfolio
-      ? { text: "Portfolio", isLink: true, url: ensureProtocol(resume.portfolio) }
+      ? { text: t["resume.portfolio"], url: ensureProtocol(resume.portfolio) }
       : null,
-    resume.website ? { text: "Website", isLink: true, url: ensureProtocol(resume.website) } : null,
-  ].filter((item): item is { text: string; isLink: boolean; url?: string } => item !== null);
+    resume.website ? { text: "Website", url: ensureProtocol(resume.website) } : null,
+  ].filter((item): item is { text: string; url?: string } => !!item?.text);
 
   if (contactInfo.length > 0) {
     doc.setFontSize(9).setFont("helvetica", "normal");
-    const sep = "  •  ";
+    const sep = "  ·  ";
     const sepW = doc.getTextWidth(sep);
     const totalW = contactInfo.reduce(
       (acc, curr, i) => acc + doc.getTextWidth(curr.text) + (i < contactInfo.length - 1 ? sepW : 0),
@@ -95,35 +102,34 @@ export const generateResumePDF = (resume: ResumeData, strategy: string) => {
     let currentX = (pageWidth - totalW) / 2;
 
     contactInfo.forEach((item, i) => {
-      if (item.isLink && item.url) {
+      if (item.url) {
         doc.setTextColor(...COLOR_LINK);
         doc.text(item.text, currentX, y);
         doc.link(currentX, y - 3, doc.getTextWidth(item.text), 4, { url: item.url });
-        // Add a subtle underline to links for visual cue (accessibility)
-        doc.setDrawColor(...COLOR_LINK);
-        doc.setLineWidth(0.1);
-        doc.line(currentX, y + 0.5, currentX + doc.getTextWidth(item.text), y + 0.5);
       } else {
-        doc.setTextColor(...COLOR_SECONDARY);
+        doc.setTextColor(...COLOR_TEXT_SECONDARY);
         doc.text(item.text, currentX, y);
       }
       currentX += doc.getTextWidth(item.text);
       if (i < contactInfo.length - 1) {
-        doc.setTextColor(...COLOR_SECONDARY);
-        doc.text(sep, currentX, y);
+        doc
+          .setTextColor(...COLOR_PRIMARY)
+          .setFont("helvetica", "bold")
+          .text(sep, currentX, y);
+        doc.setFont("helvetica", "normal");
         currentX += sepW;
       }
     });
     y += 12;
   }
 
-  // Set standard body text for remaining sections
-  doc.setTextColor(...COLOR_PRIMARY).setFontSize(FONT_SIZE_BODY);
-
-  // --- 3. SUMMARY ---
+  // --- 4. SUMMARY ---
   if (resume.summary?.length) {
-    drawSectionHeader("Summary", 10);
-    doc.setFont("helvetica", "normal");
+    drawSectionHeader(t["resume.summary"]);
+    doc
+      .setFont("helvetica", "normal")
+      .setFontSize(FONT_SIZE_BODY)
+      .setTextColor(...COLOR_TEXT_SECONDARY);
     resume.summary.forEach((p) => {
       const lines = doc.splitTextToSize(p, contentWidth);
       checkPageBreak(lines.length * LINE_HEIGHT);
@@ -132,89 +138,116 @@ export const generateResumePDF = (resume: ResumeData, strategy: string) => {
     });
   }
 
-  // --- 4. EXPERIENCE ---
+  // --- 5. EXPERIENCE ---
   if (resume.experience?.length) {
-    drawSectionHeader("Experience", 20);
+    drawSectionHeader(t["resume.experience"]);
     resume.experience.forEach((exp) => {
       checkPageBreak(15);
-      doc.setFont("helvetica", "bold");
+      doc
+        .setFont("helvetica", "bold")
+        .setFontSize(11)
+        .setTextColor(...COLOR_TEXT_MAIN);
       doc.text(exp.heading, margin, y);
-      y += 5;
+      y += 6;
 
-      doc.setFont("helvetica", "normal");
+      doc
+        .setFont("helvetica", "normal")
+        .setFontSize(FONT_SIZE_BODY)
+        .setTextColor(...COLOR_TEXT_SECONDARY);
       const bullets =
         strategy === "detailed"
           ? [...exp.bullets_primary, ...(exp.bullets_optional || [])]
           : exp.bullets_primary;
+
       bullets.forEach((b) => {
         const lines = doc.splitTextToSize(b, contentWidth - 8);
         checkPageBreak(lines.length * LINE_HEIGHT);
         doc.text("•", margin + 2, y);
-        doc.text(lines, margin + 6, y);
-        y += lines.length * LINE_HEIGHT + 1.2;
+        doc.text(lines, margin + 7, y);
+        y += lines.length * LINE_HEIGHT + 1.5;
       });
-      y += 2.5;
+      y += 3;
     });
   }
 
-  // --- 5. EDUCATION ---
-  if (resume.education?.length) {
-    drawSectionHeader("Education", 10);
-    doc.setFont("helvetica", "normal");
-    resume.education.forEach((edu) => {
-      const lines = doc.splitTextToSize(edu, contentWidth);
-      checkPageBreak(lines.length * LINE_HEIGHT);
-      doc.text(lines, margin, y);
-      y += lines.length * LINE_HEIGHT + 1.5;
-    });
-  }
-
-  // --- 6. SKILLS (Two-Column Layout) ---
+  // --- 6. SKILLS (Fixed Consistency) ---
   if (resume.skills?.length) {
-    drawSectionHeader("Skills", 20);
+    drawSectionHeader(t["resume.skills"]);
     for (let i = 0; i < resume.skills.length; i += 2) {
       const g1 = resume.skills[i];
       const g2 = resume.skills[i + 1];
-      const colW = contentWidth / 2 - 4;
+      const colW = contentWidth / 2 - 5;
 
-      const lines1 = doc.splitTextToSize(g1.items.join(" • "), colW);
+      // Items joined with bullet '•'
+      const skillString1 = g1.items.join("  •  ");
+      const lines1 = doc.splitTextToSize(skillString1, colW);
+
+      let maxHeight = lines1.length;
       let lines2: string[] = [];
-      if (g2) lines2 = doc.splitTextToSize(g2.items.join(" • "), colW);
-
-      const rowH = Math.max(lines1.length, lines2.length) * LINE_HEIGHT + 8;
-      checkPageBreak(rowH);
-
-      doc.setFont("helvetica", "bold").text(g1.category, margin, y);
-      doc.setFont("helvetica", "normal").text(lines1, margin, y + 5);
-
       if (g2) {
-        doc.setFont("helvetica", "bold").text(g2.category, margin + contentWidth / 2 + 4, y);
-        doc.setFont("helvetica", "normal").text(lines2, margin + contentWidth / 2 + 4, y + 5);
+        const skillString2 = g2.items.join("  •  ");
+        lines2 = doc.splitTextToSize(skillString2, colW);
+        maxHeight = Math.max(lines1.length, lines2.length);
       }
-      y += rowH;
+
+      checkPageBreak(maxHeight * LINE_HEIGHT + 12);
+
+      // --- Column 1 ---
+      doc
+        .setFont("helvetica", "bold")
+        .setFontSize(9)
+        .setTextColor(...COLOR_TEXT_MAIN) // Ensure Black
+        .text(g1.category, margin, y);
+
+      doc
+        .setFont("helvetica", "normal")
+        .setTextColor(...COLOR_TEXT_SECONDARY) // Muted Gray
+        .text(lines1, margin, y + 5);
+
+      // --- Column 2 ---
+      if (g2) {
+        doc
+          .setFont("helvetica", "bold")
+          .setTextColor(...COLOR_TEXT_MAIN) // FIX: Explicitly set to Black for Column 2 Title
+          .text(g2.category, margin + contentWidth / 2 + 5, y);
+
+        doc
+          .setFont("helvetica", "normal")
+          .setTextColor(...COLOR_TEXT_SECONDARY) // Muted Gray for Column 2 Items
+          .text(lines2, margin + contentWidth / 2 + 5, y + 5);
+      }
+
+      // Increment Y based on the tallest column in this row
+      y += maxHeight * LINE_HEIGHT + 12;
     }
   }
 
-  // --- 7. CERTIFICATIONS ---
-  if (resume.certifications?.length) {
-    drawSectionHeader("Certifications", 10);
-    doc.setFont("helvetica", "normal");
-    resume.certifications.forEach((cert) => {
-      const lines = doc.splitTextToSize(cert, contentWidth);
-      checkPageBreak(lines.length * LINE_HEIGHT);
-      doc.text(lines, margin, y);
-      y += lines.length * LINE_HEIGHT + 1.5;
-    });
-  }
+  // --- 7. FOOTER SECTIONS ---
+  const footerSections = [
+    { title: t["resume.education"], data: resume.education },
+    { title: t["resume.certifications"] || "Certifications", data: resume.certifications },
+    {
+      title: t["resume.languages"],
+      data: resume.languages ? [resume.languages.join("  •  ")] : [],
+    },
+  ];
 
-  // --- 8. LANGUAGES ---
-  if (resume.languages?.length) {
-    drawSectionHeader("Languages", 5);
-    doc.setFont("helvetica", "normal");
-    const langTxt = resume.languages.join(", ");
-    const lines = doc.splitTextToSize(langTxt, contentWidth);
-    doc.text(lines, margin, y);
-  }
+  footerSections.forEach((sec) => {
+    if (sec.data?.length) {
+      drawSectionHeader(sec.title);
+      doc
+        .setFont("helvetica", "normal")
+        .setFontSize(FONT_SIZE_BODY)
+        .setTextColor(...COLOR_TEXT_SECONDARY);
+      sec.data.forEach((item) => {
+        const lines = doc.splitTextToSize(item, contentWidth);
+        checkPageBreak(lines.length * LINE_HEIGHT);
+        doc.text(lines, margin, y);
+        y += lines.length * LINE_HEIGHT + 2;
+      });
+    }
+  });
 
-  doc.save(`${resume.name?.replace(/\s+/g, "_")}_${strategy}.pdf`);
+  const fileName = `${resume.name?.replace(/\s+/g, "_")}_${strategy.toUpperCase()}_${activeLocale.toUpperCase()}.pdf`;
+  doc.save(fileName);
 };
