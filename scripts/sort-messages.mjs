@@ -4,15 +4,10 @@ import path from 'path';
 const FILE_PATH = path.resolve('src/locales/messages.ts');
 
 try {
-    let content = fs.readFileSync(FILE_PATH, 'utf8');
+    const content = fs.readFileSync(FILE_PATH, 'utf8');
 
     const sortBlock = (blockName, fileContent) => {
-        /**
-         * Enhanced Regex:
-         * 1. Finds the block (en: { or pt: {)
-         * 2. Captures internal content
-         * 3. Finds the matching closing brace followed by a comma or semicolon
-         */
+        // Regex to capture the object content accurately
         const regex = new RegExp(`(${blockName}: \\{)([\\s\\S]*?)(\\n\\s{2}\\})`, 'm');
         const match = fileContent.match(regex);
 
@@ -22,43 +17,49 @@ try {
         const internalContent = match[2];
         const suffix = match[3];
 
-        const lines = internalContent
-            .split('\n')
-            .map(line => line.trim())
-            // Only keep lines that look like "key": "value"
-            .filter(line => {
-                const parts = line.split(':');
-                // Ensure there is a key and a value part, and the value isn't empty
-                return parts.length >= 2 && parts[1].trim().length > 0;
-            })
-            .map(line => {
-                // Remove existing trailing comma for clean sorting
-                let cleaned = line.endsWith(',') ? line.slice(0, -1) : line;
-                // Re-add comma to every line for valid TS syntax
-                return `${cleaned},`;
-            })
-            // Sort by the key (first part before the colon)
-            .sort((a, b) => {
-                const keyA = a.split(':')[0].toLowerCase();
-                const keyB = b.split(':')[0].toLowerCase();
-                return keyA.localeCompare(keyB);
-            });
+        // 1. Split into raw entries using a Lookbehind/Lookahead for commas between quotes
+        // This regex splits by comma ONLY if it's followed by a newline and a quote (start of next key)
+        const entries = internalContent
+            .split(/,(?=\s*\n\s*["'])/g) 
+            .map(entry => entry.trim())
+            .filter(entry => entry.length > 0 && entry.includes(':'));
 
-        // Use 4-space indentation to match Prettier/TS standards
-        const sortedInternal = lines.map(line => `    ${line}`).join('\n');
+        // 2. Sort entries by key
+        entries.sort((a, b) => {
+            const keyA = a.split(':')[0].replace(/["']/g, '').trim().toLowerCase();
+            const keyB = b.split(':')[0].replace(/["']/g, '').trim().toLowerCase();
+            return keyA.localeCompare(keyB);
+        });
+
+        // 3. Clean and Format: Ensure every entry has exactly one comma at the end
+        const formattedEntries = entries.map(entry => {
+            let cleanEntry = entry.endsWith(',') ? entry.slice(0, -1) : entry;
+            
+            // Re-indent every line of the entry (handles multi-line values)
+            return cleanEntry
+                .split('\n')
+                .map(line => `    ${line.trim()}`)
+                .join('\n') + ','; // Add the single trailing comma back
+        });
+
+        // 4. Reconstruct: Ensure no extra newlines or missing braces
+        const sortedBody = formattedEntries.join('\n');
         
         return fileContent.replace(
             match[0], 
-            `${prefix}\n${sortedInternal}\n${suffix}`
+            `${prefix}\n${sortedBody}\n${suffix}`
         );
     };
 
     let updatedContent = sortBlock('en', content);
     updatedContent = sortBlock('pt', updatedContent);
 
+    // Final sanity check: remove any double commas that might have slipped through
+    updatedContent = updatedContent.replace(/,,/g, ',');
+
     fs.writeFileSync(FILE_PATH, updatedContent);
-    console.log("✅ Messages sorted (En/Pt) and structure verified.");
+    console.log("✅ Messages sorted and validated.");
 } catch (error) {
     console.error("❌ Failed to sort messages:", error);
-    process.exit(1); // Exit with error so lint-staged stops
+    process.exit(1);
 }
