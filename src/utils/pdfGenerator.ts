@@ -3,9 +3,6 @@ import { ResumeData } from "@/api/schemas/optimizationSchema";
 import { messages, Locale } from "@/locales/messages";
 import { detectLanguage } from "./languageUtils";
 
-/**
- * Generates a professional PDF resume with consistent skill styling.
- */
 export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLocale?: Locale) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -33,6 +30,10 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
     return /^(https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
   };
 
+  /**
+   * Checks if content fits on current page.
+   * If not, adds a page and resets Y to margin.
+   */
   const checkPageBreak = (neededHeight: number) => {
     if (y + neededHeight > pageHeight - margin) {
       doc.addPage();
@@ -42,8 +43,12 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
     return false;
   };
 
+  /**
+   * Draws section header and ensures it's not "orphaned" at the bottom.
+   */
   const drawSectionHeader = (text: string) => {
-    checkPageBreak(15);
+    // Ensure header (10) + some content (min 20) fits
+    checkPageBreak(30);
     y += 4;
     doc
       .setFont("helvetica", "bold")
@@ -58,9 +63,10 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
   };
 
   // --- 1. TOP BAR ---
-  doc.setDrawColor(...COLOR_PRIMARY);
-  doc.setLineWidth(2);
-  doc.line(0, 0, pageWidth, 0);
+  doc
+    .setDrawColor(...COLOR_PRIMARY)
+    .setLineWidth(2)
+    .line(0, 0, pageWidth, 0);
 
   // --- 2. HEADER ---
   doc
@@ -103,12 +109,10 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
 
     contactInfo.forEach((item, i) => {
       if (item.url) {
-        doc.setTextColor(...COLOR_LINK);
-        doc.text(item.text, currentX, y);
+        doc.setTextColor(...COLOR_LINK).text(item.text, currentX, y);
         doc.link(currentX, y - 3, doc.getTextWidth(item.text), 4, { url: item.url });
       } else {
-        doc.setTextColor(...COLOR_TEXT_SECONDARY);
-        doc.text(item.text, currentX, y);
+        doc.setTextColor(...COLOR_TEXT_SECONDARY).text(item.text, currentX, y);
       }
       currentX += doc.getTextWidth(item.text);
       if (i < contactInfo.length - 1) {
@@ -142,26 +146,29 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
   if (resume.experience?.length) {
     drawSectionHeader(t["resume.experience"]);
     resume.experience.forEach((exp) => {
-      checkPageBreak(15);
+      const bullets =
+        strategy === "detailed"
+          ? [...exp.bullets_primary, ...(exp.bullets_optional || [])]
+          : exp.bullets_primary;
+
+      // Prevent heading from being separated from its first bullet
+      checkPageBreak(20);
+
       doc
         .setFont("helvetica", "bold")
         .setFontSize(11)
-        .setTextColor(...COLOR_TEXT_MAIN);
-      doc.text(exp.heading, margin, y);
+        .setTextColor(...COLOR_TEXT_MAIN)
+        .text(exp.heading, margin, y);
       y += 6;
 
       doc
         .setFont("helvetica", "normal")
         .setFontSize(FONT_SIZE_BODY)
         .setTextColor(...COLOR_TEXT_SECONDARY);
-      const bullets =
-        strategy === "detailed"
-          ? [...exp.bullets_primary, ...(exp.bullets_optional || [])]
-          : exp.bullets_primary;
-
       bullets.forEach((b) => {
         const lines = doc.splitTextToSize(b, contentWidth - 8);
-        checkPageBreak(lines.length * LINE_HEIGHT);
+        // Each bullet check
+        checkPageBreak(lines.length * LINE_HEIGHT + 2);
         doc.text("•", margin + 2, y);
         doc.text(lines, margin + 7, y);
         y += lines.length * LINE_HEIGHT + 1.5;
@@ -170,55 +177,50 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
     });
   }
 
-  // --- 6. SKILLS (Fixed Consistency) ---
+  // --- 6. SKILLS (Fixed Grid and Spacing) ---
   if (resume.skills?.length) {
     drawSectionHeader(t["resume.skills"]);
+    const colWidth = contentWidth / 2 - 5;
+    const col2X = margin + contentWidth / 2 + 5;
+
     for (let i = 0; i < resume.skills.length; i += 2) {
       const g1 = resume.skills[i];
       const g2 = resume.skills[i + 1];
-      const colW = contentWidth / 2 - 5;
 
-      // Items joined with bullet '•'
-      const skillString1 = g1.items.join("  •  ");
-      const lines1 = doc.splitTextToSize(skillString1, colW);
+      const lines1 = doc.splitTextToSize(g1.items.join("  •  "), colWidth);
+      const lines2 = g2 ? doc.splitTextToSize(g2.items.join("  •  "), colWidth) : [];
 
-      let maxHeight = lines1.length;
-      let lines2: string[] = [];
-      if (g2) {
-        const skillString2 = g2.items.join("  •  ");
-        lines2 = doc.splitTextToSize(skillString2, colW);
-        maxHeight = Math.max(lines1.length, lines2.length);
-      }
+      const maxLines = Math.max(lines1.length, lines2.length);
+      const titleOffset = 5;
+      const blockHeight = maxLines * LINE_HEIGHT + titleOffset + 5;
 
-      checkPageBreak(maxHeight * LINE_HEIGHT + 12);
+      checkPageBreak(blockHeight);
 
-      // --- Column 1 ---
+      // Render Category 1
       doc
         .setFont("helvetica", "bold")
         .setFontSize(9)
-        .setTextColor(...COLOR_TEXT_MAIN) // Ensure Black
+        .setTextColor(...COLOR_TEXT_MAIN)
         .text(g1.category, margin, y);
-
       doc
         .setFont("helvetica", "normal")
-        .setTextColor(...COLOR_TEXT_SECONDARY) // Muted Gray
-        .text(lines1, margin, y + 5);
+        .setTextColor(...COLOR_TEXT_SECONDARY)
+        .text(lines1, margin, y + titleOffset);
 
-      // --- Column 2 ---
+      // Render Category 2
       if (g2) {
         doc
           .setFont("helvetica", "bold")
-          .setTextColor(...COLOR_TEXT_MAIN) // FIX: Explicitly set to Black for Column 2 Title
-          .text(g2.category, margin + contentWidth / 2 + 5, y);
-
+          .setTextColor(...COLOR_TEXT_MAIN)
+          .text(g2.category, col2X, y);
         doc
           .setFont("helvetica", "normal")
-          .setTextColor(...COLOR_TEXT_SECONDARY) // Muted Gray for Column 2 Items
-          .text(lines2, margin + contentWidth / 2 + 5, y + 5);
+          .setTextColor(...COLOR_TEXT_SECONDARY)
+          .text(lines2, col2X, y + titleOffset);
       }
 
-      // Increment Y based on the tallest column in this row
-      y += maxHeight * LINE_HEIGHT + 12;
+      // Increment Y by the actual height used in this row
+      y += blockHeight;
     }
   }
 
@@ -241,7 +243,8 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
         .setTextColor(...COLOR_TEXT_SECONDARY);
       sec.data.forEach((item) => {
         const lines = doc.splitTextToSize(item, contentWidth);
-        checkPageBreak(lines.length * LINE_HEIGHT);
+        // Header is already drawn, just check for lines
+        checkPageBreak(lines.length * LINE_HEIGHT + 5);
         doc.text(lines, margin, y);
         y += lines.length * LINE_HEIGHT + 2;
       });

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
+import dynamic from "next/dynamic";
 import {
   Typography,
   Button,
@@ -10,7 +11,6 @@ import {
   Divider,
   alpha,
   useTheme,
-  Backdrop,
   Fade,
   Alert,
 } from "@mui/material";
@@ -27,7 +27,8 @@ import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import LanguageIcon from "@mui/icons-material/Language";
 import HistoryIcon from "@mui/icons-material/History";
 
-const Home: React.FC = () => {
+// 1. Declare as a named function so Turbopack can hoist the reference correctly
+function HomeContent() {
   const theme = useTheme();
   const router = useRouter();
   const { addToast } = useToast();
@@ -38,24 +39,21 @@ const Home: React.FC = () => {
   const [resumeText, setResumeText] = useState<string>("");
   const [jobDescription, setJobDescription] = useState<string>("");
 
-  const isEditMode = router.isReady && router.query.edit === "true";
-
   useEffect(() => {
     if (!router.isReady) return;
-
     const hasResult = localStorage.getItem("analysisResult");
-    if (hasResult && !isEditMode) {
+    if (hasResult && router.query.edit !== "true") {
       router.replace("/report");
     }
-  }, [router.isReady, isEditMode, router]);
+  }, [router, router.isReady, router.query.edit]);
 
+  const isEditMode = router.query.edit === "true";
   const isFormValid = resumeText.trim().length > 50 && jobDescription.trim().length >= 20;
 
   const handleSubmit = () => {
     startTransition(async () => {
       localStorage.setItem("resumeText", resumeText);
       localStorage.setItem("jobText", jobDescription);
-
       try {
         const result = await generateReport(resumeText, jobDescription, locale);
         if (result.success) {
@@ -67,18 +65,10 @@ const Home: React.FC = () => {
         }
       } catch (error) {
         addToast("Failed to connect to server", "error");
-        throw error; // Re-throw for potential higher-level handling/logging
+        throw error;
       }
     });
   };
-
-  if (!router.isReady) {
-    return (
-      <Backdrop open={true} sx={{ bgcolor: "background.default", zIndex: 10 }}>
-        <CircularProgress color="primary" size={50} />
-      </Backdrop>
-    );
-  }
 
   return (
     <MainLayout>
@@ -177,10 +167,6 @@ const Home: React.FC = () => {
                 sx={{
                   fontSize: 22,
                   color: resumeText.length > 50 ? "success.main" : "action.disabled",
-                  filter:
-                    resumeText.length > 50
-                      ? `drop-shadow(0 0 8px ${alpha(theme.palette.success.main, 0.4)})`
-                      : "none",
                 }}
               />
               <Typography variant="body2" fontWeight={800}>
@@ -192,10 +178,6 @@ const Home: React.FC = () => {
                 sx={{
                   fontSize: 22,
                   color: jobDescription.length >= 20 ? "success.main" : "action.disabled",
-                  filter:
-                    jobDescription.length >= 20
-                      ? `drop-shadow(0 0 8px ${alpha(theme.palette.success.main, 0.4)})`
-                      : "none",
                 }}
               />
               <Typography variant="body2" fontWeight={800}>
@@ -225,19 +207,8 @@ const Home: React.FC = () => {
                 fontWeight: 900,
                 textTransform: "none",
                 fontSize: "1rem",
-                // FIXED COLOR: Ensure text is explicitly white/contrast
-                color: theme.palette.common.white,
+                color: "common.white",
                 background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                boxShadow: `0 10px 25px -5px ${alpha(theme.palette.primary.main, 0.4)}`,
-                "&:hover": {
-                  transform: "translateY(-2px)",
-                  boxShadow: `0 15px 30px -5px ${alpha(theme.palette.primary.main, 0.5)}`,
-                  color: theme.palette.common.white,
-                },
-                "&:disabled": {
-                  bgcolor: alpha(theme.palette.action.disabledBackground, 0.1),
-                  color: alpha(theme.palette.common.white, 0.5),
-                },
               }}
             >
               {isSubmitting || isPending ? t("loading.generating") : t("loading.generate_report")}
@@ -247,6 +218,18 @@ const Home: React.FC = () => {
       </Fade>
     </MainLayout>
   );
-};
+}
+
+// 2. Wrap and Export
+const Home = dynamic(() => Promise.resolve(HomeContent), {
+  ssr: false,
+  loading: () => (
+    <MainLayout>
+      <Box sx={{ p: 10, textAlign: "center" }}>
+        <CircularProgress />
+      </Box>
+    </MainLayout>
+  ),
+});
 
 export default Home;

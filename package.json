@@ -37,7 +37,7 @@
     "axios": "^1.13.4",
     "jspdf": "^4.1.0",
     "mammoth": "^1.11.0",
-    "next": "^15.5.12",
+    "next": "^16.1.6",
     "pdfjs-dist": "^5.4.624",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -61,15 +61,16 @@
     "typescript": "^5.3.3"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": [
+    "src/**/!(messages).{ts,tsx}": [
       "eslint --fix",
-      "prettier --write"
-    ],
-    "src/**/*.{json,md}": [
       "prettier --write"
     ],
     "src/locales/messages.ts": [
       "node scripts/sort-messages.mjs",
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,md}": [
       "prettier --write"
     ]
   }

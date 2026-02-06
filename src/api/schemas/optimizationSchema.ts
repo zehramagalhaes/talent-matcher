@@ -35,17 +35,34 @@ export const OptimizationSchema = z.object({
   recommended_strategy: z.enum(["compact", "detailed"]),
   strategy_insight: z.string(),
   title_suggestion: z.string().optional(),
-  strengths: z.array(z.string()),
-  gaps: z.array(z.string()),
-  keywords_to_add: z.array(z.string()),
+  strengths: z.array(
+    z.object({
+      category: z.string(),
+      items: z.array(z.string()),
+    })
+  ),
+  gaps: z.array(
+    z.object({
+      category: z.string(),
+      items: z.array(z.string()),
+    })
+  ),
+  keywords_to_add: z.array(
+    z.object({
+      category: z.string(),
+      items: z.array(z.string()),
+    })
+  ),
   experience_bridge_suggestions: z
     .array(
       z.object({
         context: z.string(),
-        suggestion: z.string(),
+        instruction: z.string(),
+        applied_experience: z.string(),
       })
     )
     .default([]),
+
   scoring_rubric: z.object({
     overall_notes: z.string(),
   }),
