@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import MainLayout from "@/components/reusables/Layout";
-import OptimizationDashboard from "@/components/OptimizationDashboard";
+
 import ErrorCard from "@/components/reusables/ErrorCard";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -21,6 +21,7 @@ import { analyzeApi } from "@/api/analyze/analyzeApi";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
 import { useRouter } from "next/router";
 import { OptimizationResult } from "@/api/schemas/optimizationSchema";
+import { OptimizationDashboard } from "@/components/dashboard/OptimizationDashboard";
 
 const ReportPage: React.FC = () => {
   const router = useRouter();

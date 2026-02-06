@@ -23,28 +23,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    // 1. Sanitize: Remove markdown triple backticks if present
+    // 1. Robust Sanitization
     const cleanedJson = responseText
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    // 2. Parse
+    // 2. Parse JSON
     const rawData = JSON.parse(cleanedJson);
 
-    // 3. Validate with Zod
-    const validatedData = OptimizationSchema.parse(rawData);
+    // 3. Validation with Hallucination Check
+    // We use .safeParse to handle errors gracefully without crashing the catch block immediately
+    const validation = OptimizationSchema.safeParse(rawData);
 
-    return res.status(200).json(validatedData);
+    if (!validation.success) {
+      console.error("ZOD_VALIDATION_FAILURE:", validation.error.format());
+      return res.status(422).json({
+        error: "AI Response Format Invalid",
+        message: "The AI hallucinated or missed required fields like match_score_compact.",
+        details: validation.error.errors,
+      });
+    }
+
+    return res.status(200).json(validation.data);
   } catch (error: unknown) {
-    // Check terminal for this specific log to see which field failed validation
-    console.error("DEBUG_API_ERROR:", error);
-
+    console.error("CRITICAL_API_ERROR:", error);
     return res.status(500).json({
       error: "Analysis failed",
-      message: error instanceof Error ? error.message : String(error),
-      // Optional: send Zod errors to help debugging
-      details: (error instanceof Error && (error as Error).stack) ?? null,
+      message: error instanceof Error ? error.message : "Internal Server Error",
     });
   }
 }
