@@ -3,6 +3,7 @@ import { Box, Divider, Chip } from "@mui/material";
 import { OptimizationResult } from "@/api/schemas/optimizationSchema";
 import { useToast } from "@/context/ToastContext";
 import { generateResumePDF } from "@/utils/pdfGenerator";
+
 import OptimizedResume from "./OptimizedResume";
 import { DashboardHeader } from "./DashboardHeader";
 import { InsightsGrid } from "./InsightsGrid";
@@ -10,11 +11,7 @@ import { StrengthsGaps } from "./StrengthsGaps";
 import { ImprovementModal } from "./ImprovementModal";
 import { useTranslation } from "@/hooks/useTranslation";
 import ExperienceBridge from "./ExperienceBridge";
-
-interface SkillGroup {
-  category: string;
-  items: string[];
-}
+import { sanitizeToCategorized, sanitizeToStrings, SkillGroup } from "@/utils/dashboardUtils";
 
 export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ data }) => {
   const { addToast } = useToast();
@@ -36,18 +33,17 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
   const currentResume = localVersions[strategy];
   const currentScore = localScores[strategy];
 
-  /** * DOWNLOAD HANDLER:
-   * Uses local state to ensure all applied additions are included in the PDF.
-   */
+  // Logic: InsightsGrid wants objects, StrengthsGaps wants strings.
+  const categorizedKeywords = sanitizeToCategorized(data.keywords_to_add as unknown[]);
+  const safeStrengths = sanitizeToStrings(data.strengths as unknown[]);
+  const safeGaps = sanitizeToStrings(data.gaps as unknown[]);
+
+  // --- Handlers ---
   const handleDownload = () => {
     generateResumePDF(localVersions[strategy], strategy, locale);
     addToast(t("common.download"), "info");
   };
 
-  /**
-   * RESET HANDLER:
-   * Reverts local modifications back to initial API state.
-   */
   const handleReset = () => {
     setLocalVersions({
       compact: data.optimized_versions.compact,
@@ -59,72 +55,42 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
     });
   };
 
-  /**
-   * EXPERIENCE: Cleans instructional text (extracts quoted content) and adds to resume.
-   */
   const handleExperienceImprovement = (fullText: string) => {
     let suggestion = fullText;
     const addIndex = fullText.indexOf("add: ");
-    if (addIndex !== -1) {
-      suggestion = fullText.substring(addIndex + 5);
-    }
-    // Removes surrounding quotes and trims whitespace
+    if (addIndex !== -1) suggestion = fullText.substring(addIndex + 5);
     suggestion = suggestion.replace(/^['"]|['"]$/g, "").trim();
 
     setLocalVersions((prev) => {
       const activeResume = prev[strategy];
       const newExperience = JSON.parse(JSON.stringify(activeResume.experience || []));
-
       if (newExperience.length > 0) {
         if (!newExperience[0].bullets_primary.includes(suggestion)) {
           newExperience[0].bullets_primary.unshift(suggestion);
         }
       }
-
-      return {
-        ...prev,
-        [strategy]: { ...activeResume, experience: newExperience },
-      };
+      return { ...prev, [strategy]: { ...activeResume, experience: newExperience } };
     });
-
-    setLocalScores((prev) => ({
-      ...prev,
-      [strategy]: Math.min(prev[strategy] + 5, 100),
-    }));
+    setLocalScores((prev) => ({ ...prev, [strategy]: Math.min(prev[strategy] + 5, 100) }));
   };
 
-  /** * SKILLS: Adds keywords to the most relevant existing category.
-   */
   const confirmImprovement = () => {
     if (!pendingImprovement) return;
-
     setLocalVersions((prev) => {
       const activeResume = prev[strategy];
       const newSkills = JSON.parse(JSON.stringify(activeResume.skills || []));
-
-      let targetGroup = newSkills.find(
-        (group: SkillGroup) =>
-          group.category.toLowerCase().includes("skill") ||
-          group.category.toLowerCase().includes("technology") ||
-          group.category.toLowerCase().includes("tools")
+      let targetGroup = newSkills.find((group: SkillGroup) =>
+        group.category.toLowerCase().match(/skill|technology|tools/)
       );
-
       if (!targetGroup && newSkills.length > 0) targetGroup = newSkills[0];
       if (!targetGroup) {
         targetGroup = { category: t("common.status"), items: [] };
         newSkills.push(targetGroup);
       }
-
-      if (!targetGroup.items.includes(pendingImprovement)) {
+      if (!targetGroup.items.includes(pendingImprovement))
         targetGroup.items.push(pendingImprovement);
-      }
-
-      return {
-        ...prev,
-        [strategy]: { ...activeResume, skills: newSkills },
-      };
+      return { ...prev, [strategy]: { ...activeResume, skills: newSkills } };
     });
-
     setLocalScores((prev) => ({ ...prev, [strategy]: Math.min(prev[strategy] + 2, 100) }));
     addToast(t("common.confirm"), "success");
     setPendingImprovement(null);
@@ -142,17 +108,16 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
         detailedData={localVersions.detailed}
       />
 
-      {/* Main Analysis Section */}
       <InsightsGrid
         resume={currentResume}
         score={currentScore}
         notes={data.scoring_rubric.overall_notes}
-        keywords={data.keywords_to_add}
+        keywords={categorizedKeywords} // Matches the expected SkillGroup[] (CategorizedKeywords[])
         viewType={strategy}
         onAddKeyword={(kw) => setPendingImprovement(kw)}
       />
 
-      <StrengthsGaps strengths={data.strengths} gaps={data.gaps} />
+      <StrengthsGaps strengths={safeStrengths} gaps={safeGaps} />
 
       <ExperienceBridge
         suggestions={data.experience_bridge_suggestions}
@@ -162,14 +127,13 @@ export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ 
       <Box sx={{ textAlign: "center", mb: 4, position: "relative" }}>
         <Divider>
           <Chip
-            label={t("common.status").toUpperCase()}
+            label={t("dashboard.header.preview").toUpperCase()}
             size="small"
             sx={{ fontWeight: "bold", px: 2 }}
           />
         </Divider>
       </Box>
 
-      {/* Live Preview Section */}
       <OptimizedResume resume={currentResume} />
 
       <ImprovementModal

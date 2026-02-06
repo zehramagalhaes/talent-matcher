@@ -7,32 +7,46 @@ try {
     let content = fs.readFileSync(FILE_PATH, 'utf8');
 
     const sortBlock = (blockName, fileContent) => {
-        // Regex looks for the start of the block and matches everything until the matching closing brace
-        // This version handles empty lines and maintains the object structure
-        const regex = new RegExp(`(${blockName}: \\{)([\\s\\S]*?)(\\n\\s{2}\\},)`, 'm');
+        /**
+         * Enhanced Regex:
+         * 1. Finds the block (en: { or pt: {)
+         * 2. Captures internal content
+         * 3. Finds the matching closing brace followed by a comma or semicolon
+         */
+        const regex = new RegExp(`(${blockName}: \\{)([\\s\\S]*?)(\\n\\s{2}\\})`, 'm');
         const match = fileContent.match(regex);
 
         if (!match) return fileContent;
 
-        const prefix = match[1]; // "en: {"
-        const internalContent = match[2]; // The actual keys
-        const suffix = match[3]; // "  },"
+        const prefix = match[1]; 
+        const internalContent = match[2];
+        const suffix = match[3];
 
-        // 1. Split by lines
-        // 2. Filter valid key-value lines
-        // 3. Ensure every line ends with a comma (fixes the "missing comma" bug)
-        // 4. Sort
         const lines = internalContent
             .split('\n')
             .map(line => line.trim())
-            .filter(line => line.includes(':'))
-            .map(line => line.endsWith(',') ? line : `${line},`) 
-            .sort((a, b) => a.localeCompare(b));
+            // Only keep lines that look like "key": "value"
+            .filter(line => {
+                const parts = line.split(':');
+                // Ensure there is a key and a value part, and the value isn't empty
+                return parts.length >= 2 && parts[1].trim().length > 0;
+            })
+            .map(line => {
+                // Remove existing trailing comma for clean sorting
+                let cleaned = line.endsWith(',') ? line.slice(0, -1) : line;
+                // Re-add comma to every line for valid TS syntax
+                return `${cleaned},`;
+            })
+            // Sort by the key (first part before the colon)
+            .sort((a, b) => {
+                const keyA = a.split(':')[0].toLowerCase();
+                const keyB = b.split(':')[0].toLowerCase();
+                return keyA.localeCompare(keyB);
+            });
 
-        // Reconstruct with standard 4-space indentation
+        // Use 4-space indentation to match Prettier/TS standards
         const sortedInternal = lines.map(line => `    ${line}`).join('\n');
         
-        // Reassemble the block
         return fileContent.replace(
             match[0], 
             `${prefix}\n${sortedInternal}\n${suffix}`
@@ -43,7 +57,8 @@ try {
     updatedContent = sortBlock('pt', updatedContent);
 
     fs.writeFileSync(FILE_PATH, updatedContent);
-    console.log("✅ Messages sorted and structure preserved.");
+    console.log("✅ Messages sorted (En/Pt) and structure verified.");
 } catch (error) {
     console.error("❌ Failed to sort messages:", error);
+    process.exit(1); // Exit with error so lint-staged stops
 }

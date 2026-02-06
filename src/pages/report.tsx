@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
+import dynamic from "next/dynamic";
 import MainLayout from "@/components/reusables/Layout";
 import ErrorCard from "@/components/reusables/ErrorCard";
 import { useToast } from "@/context/ToastContext";
@@ -24,8 +25,9 @@ import { useRouter } from "next/router";
 import { useTranslation } from "@/hooks/useTranslation";
 import { OptimizationResult } from "@/api/schemas/optimizationSchema";
 import { OptimizationDashboard } from "@/components/dashboard/OptimizationDashboard";
+import ReportSkeleton from "@/components/loadings/ReportSkeletonLoading";
 
-const ReportPage: React.FC = () => {
+const ReportContent: React.FC = () => {
   const theme = useTheme();
   const router = useRouter();
   const { addToast } = useToast();
@@ -36,9 +38,7 @@ const ReportPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [openModal, setOpenModal] = useState<boolean>(false);
 
-  // Ref to ensure the initial fetch only triggers once
   const isInitialMount = useRef(true);
-  // useTransition helps React prioritize UI responsiveness over heavy state updates
   const [isPending, startTransition] = useTransition();
   const usedModel = DEFAULT_GEMINI_MODEL;
 
@@ -49,7 +49,6 @@ const ReportPage: React.FC = () => {
 
       const savedAnalysis = localStorage.getItem("analysisResult");
 
-      // 1. Check Cache
       if (savedAnalysis && !model) {
         try {
           const parsed = JSON.parse(savedAnalysis);
@@ -61,15 +60,10 @@ const ReportPage: React.FC = () => {
         } catch (e) {
           localStorage.removeItem("analysisResult");
           addToast(t("report.error.cache_failed"), "warning");
-          if (e instanceof Error) {
-            throw e;
-          } else {
-            throw new Error("Failed to parse cached analysis result");
-          }
+          throw new Error(e instanceof Error ? e.message : t("report.error.cache_failed"));
         }
       }
 
-      // 2. Check Input Data
       const resumeText = localStorage.getItem("resumeText");
       const jobText = localStorage.getItem("jobText");
 
@@ -81,7 +75,6 @@ const ReportPage: React.FC = () => {
         return;
       }
 
-      // 3. API Call
       try {
         const response = await analyzeApi(resumeText, jobText, model);
         startTransition(() => {
@@ -108,7 +101,6 @@ const ReportPage: React.FC = () => {
     [addToast, t]
   );
 
-  // Guard: Only fetch once when router is ready
   useEffect(() => {
     if (isInitialMount.current && router.isReady) {
       isInitialMount.current = false;
@@ -116,7 +108,6 @@ const ReportPage: React.FC = () => {
     }
   }, [fetchReportWithModel, router.isReady]);
 
-  // --- Handlers (Preserved) ---
   const handleRecover = async () => {
     setOpenModal(false);
     localStorage.removeItem("analysisResult");
@@ -137,99 +128,84 @@ const ReportPage: React.FC = () => {
   };
 
   return (
-    <MainLayout>
-      <Container maxWidth="lg" sx={{ py: { xs: 2, md: 5 } }}>
-        {loading || isPending ? (
-          <Box
-            sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 10, gap: 3 }}
-          >
-            <CircularProgress size={60} thickness={4} />
-            <Box sx={{ textAlign: "center" }}>
-              <Typography variant="h5" sx={{ fontWeight: 900 }}>
-                {t("loading.analyzing_with")?.replace("{model}", usedModel)}
-              </Typography>
-              <Typography color="textSecondary">{t("loading.wait_message")}</Typography>
-            </Box>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 5 } }}>
+      {loading || isPending ? (
+        <Box
+          sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 10, gap: 3 }}
+        >
+          <CircularProgress size={60} thickness={4} />
+          <Box sx={{ textAlign: "center" }}>
+            <Typography variant="h5" sx={{ fontWeight: 900 }}>
+              {t("loading.analyzing_with")?.replace("{model}", usedModel)}
+            </Typography>
+            <Typography color="textSecondary">{t("loading.wait_message")}</Typography>
           </Box>
-        ) : error ? (
-          <Box sx={{ mt: 3, maxWidth: 600, mx: "auto" }}>
-            <ErrorCard message={error} />
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+        </Box>
+      ) : error ? (
+        <Box sx={{ mt: 3, maxWidth: 600, mx: "auto" }}>
+          <ErrorCard message={error} />
+          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+            <Button
+              variant="contained"
+              startIcon={<RefreshIcon />}
+              onClick={() => fetchReportWithModel()}
+              sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
+            >
+              {t("common.retry")}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => setOpenModal(true)}
+              sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
+            >
+              {t("common.edit")}
+            </Button>
+          </Stack>
+        </Box>
+      ) : (
+        report && (
+          <>
+            <Box
+              sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
               <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={() => fetchReportWithModel()}
-                sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
-              >
-                {t("common.retry")}
-              </Button>
-              <Button
-                variant="outlined"
                 startIcon={<EditIcon />}
                 onClick={() => setOpenModal(true)}
-                sx={{ borderRadius: 3, px: 3, fontWeight: 700 }}
+                sx={{
+                  fontWeight: 800,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  px: 3,
+                  textTransform: "none",
+                }}
               >
                 {t("common.edit")}
               </Button>
-            </Stack>
-          </Box>
-        ) : (
-          report && (
-            <>
-              <Box
+              <Typography
+                variant="caption"
                 sx={{
-                  mb: 4,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  bgcolor: alpha(theme.palette.divider, 0.1),
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 1,
                 }}
               >
-                <Button
-                  startIcon={<EditIcon />}
-                  onClick={() => setOpenModal(true)}
-                  sx={{
-                    fontWeight: 800,
-                    borderRadius: 2,
-                    bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    px: 3,
-                    textTransform: "none",
-                  }}
-                >
-                  {t("common.edit")}
-                </Button>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    bgcolor: alpha(theme.palette.divider, 0.1),
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1,
-                  }}
-                >
-                  {t("report.model_label")?.replace("{model}", usedModel)}
-                </Typography>
-              </Box>
+                {t("report.model_label")?.replace("{model}", usedModel)}
+              </Typography>
+            </Box>
+            <OptimizationDashboard data={report} />
+          </>
+        )
+      )}
 
-              <OptimizationDashboard data={report} />
-            </>
-          )
-        )}
-      </Container>
-
-      {/* RE-SUBMISSION STRATEGY MODAL (Preserved) */}
+      {/* MODAL (Always Client-Side) */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 5,
-            p: 2,
-            boxShadow: `0 20px 40px ${alpha(theme.palette.common.black, 0.2)}`,
-            backgroundImage: "none",
-          },
-        }}
+        slotProps={{ paper: { sx: { borderRadius: 5, p: 2, backgroundImage: "none" } } }}
       >
         <DialogTitle sx={{ fontWeight: 900, fontSize: "1.5rem" }}>
           {t("modal.update_submission.title")}
@@ -250,20 +226,24 @@ const ReportPage: React.FC = () => {
           <Button
             onClick={handleRecover}
             variant="contained"
-            sx={{
-              borderRadius: 3,
-              fontWeight: 900,
-              px: 4,
-              textTransform: "none",
-              boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
-            }}
+            sx={{ borderRadius: 3, fontWeight: 900, px: 4, textTransform: "none" }}
           >
             {t("common.edit_current")}
           </Button>
         </DialogActions>
       </Dialog>
-    </MainLayout>
+    </Container>
   );
 };
+
+// --- FINAL EXPORT WITH NO SSR ---
+const ReportPage = dynamic(() => Promise.resolve(ReportContent), {
+  ssr: false,
+  loading: () => (
+    <MainLayout>
+      <ReportSkeleton />
+    </MainLayout>
+  ),
+});
 
 export default ReportPage;

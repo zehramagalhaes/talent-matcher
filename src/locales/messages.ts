@@ -1,5 +1,7 @@
 export const messages = {
   en: {
+    "app.description": "Where skills meet opportunities.",
+    "app.name": "Talent Matcher",
     "common.add": "Add",
     "common.back": "Return to Form",
     "common.cancel": "Cancel",
@@ -15,15 +17,11 @@ export const messages = {
     "common.status": "Form Status",
     "dashboard.experience.bridge_add_button": "Add to Resume",
     "dashboard.experience.bridge_added_status": "Added",
-    "dashboard.experience.bridge_description":
-      "Bridge the gap between your experience and the job requirements by adding these specific achievements.",
     "dashboard.experience.bridge_focus_area": "Focus Area: {context}",
     "dashboard.experience.bridge_title": "Manual Experience Bridging",
     "dashboard.experience.toast_added": "Experience bullet added to your latest role!",
     "dashboard.gaps": "Gaps & Improvements",
     "dashboard.header.compare": "Compare",
-    "dashboard.header.description":
-      "Review the AI-optimized versions of your resume tailored specifically for this job description.",
     "dashboard.header.preview": "Analysis Results",
     "dashboard.header.strategy.compact": "Compact",
     "dashboard.header.strategy.detailed": "Detailed",
@@ -56,11 +54,7 @@ export const messages = {
     "form.resume.processing": "Processing File...",
     "form.resume.uploaded": "Uploaded Resume",
     "form.upload.success": "Resume uploaded and analyzed successfully!",
-    "home.disclaimer.body":
-      "Your data is processed securely to provide the best career insights. Select your preferred language for the final report.",
     "home.disclaimer.title": "SELECT REPORT LANGUAGE",
-    "home.editMode.notice":
-      "You are currently in edit mode. Your previous data has been recovered.",
     "home.form.complete": "Complete",
     "home.form.incomplete": "Incomplete",
     "home.form.instruction": "Please complete all fields above to generate your report.",
@@ -73,8 +67,6 @@ export const messages = {
     "loading.wait_message": "This usually takes about 10-15 seconds...",
     "modal.addSkill.body": 'Are you sure you want to add "{keyword}" to your resume?',
     "modal.addSkill.title": "Add Skill",
-    "modal.update_submission.description":
-      "This will re-run the analysis with your updated information.",
     "modal.update_submission.title": "Update Submission",
     "report.error.cache_failed": "Failed to load cached report. Generating a new one...",
     "report.error.gen_failed": "Failed to generate report",
@@ -98,6 +90,8 @@ export const messages = {
     "toast.starting_fresh": "Report cleared. Starting a new analysis.",
   },
   pt: {
+    "app.description": "Onde habilidades encontram oportunidades.",
+    "app.name": "Talent Matcher",
     "common.add": "Adicionar",
     "common.back": "Retornar ao Formulário",
     "common.cancel": "Cancelar",
@@ -113,15 +107,11 @@ export const messages = {
     "common.status": "Status do Formulário",
     "dashboard.experience.bridge_add_button": "Adicionar ao Currículo",
     "dashboard.experience.bridge_added_status": "Adicionado",
-    "dashboard.experience.bridge_description":
-      "Preencha a lacuna entre sua experiência e os requisitos da vaga adicionando estas conquistas específicas.",
     "dashboard.experience.bridge_focus_area": "Foco: {context}",
     "dashboard.experience.bridge_title": "Complemento de Experiência",
     "dashboard.experience.toast_added": "Experiência adicionada ao seu cargo mais recente!",
     "dashboard.gaps": "Pontos de Melhoria",
     "dashboard.header.compare": "Comparar",
-    "dashboard.header.description":
-      "Revise as versões otimizadas por IA do seu currículo, adaptadas especificamente para esta descrição de vaga.",
     "dashboard.header.preview": "Resultados da Análise",
     "dashboard.header.strategy.compact": "Compacto",
     "dashboard.header.strategy.detailed": "Detalhado",
@@ -154,8 +144,6 @@ export const messages = {
     "form.resume.processing": "Processando arquivo...",
     "form.resume.uploaded": "Currículo enviado!",
     "form.upload.success": "Currículo enviado e analisado com sucesso!",
-    "home.disclaimer.body":
-      "Seus dados são processados com segurança para fornecer os melhores insights de carreira. Selecione o idioma de sua preferência para o relatório final.",
     "home.disclaimer.title": "SELECIONE O IDIOMA DO RELATÓRIO",
     "home.editMode.notice": "Você está no modo de edição. Seus dados anteriores foram recuperados.",
     "home.form.complete": "Completo",
@@ -170,14 +158,10 @@ export const messages = {
     "loading.wait_message": "Isso costuma levar de 10 a 15 segundos...",
     "modal.addSkill.body": 'Tem certeza que deseja adicionar "{keyword}" ao seu currículo?',
     "modal.addSkill.title": "Adicionar Habilidade",
-    "modal.update_submission.description":
-      "Isso executará a análise novamente com suas informações atualizadas.",
     "modal.update_submission.title": "Atualizar Envio",
     "report.error.cache_failed": "Falha ao carregar relatório em cache. Gerando um novo...",
     "report.error.gen_failed": "Falha ao gerar o relatório",
     "report.error.missing_data": "Faltam alguns dados obrigatórios para exibir o relatório.",
-    "report.error.no_data_found":
-      "Nenhum dado de análise encontrado. Por favor, tente enviar novamente.",
     "report.error.prefix": "Erro: {message}",
     "report.model_label": "Modelo: {model}",
     "resume.additionalSkills": "Competências Adicionais",
