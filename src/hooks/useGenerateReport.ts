@@ -1,54 +1,89 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import axios from "axios";
-import { OptimizationResult } from "@/api/schemas/optimizationSchema";
+import { useRouter } from "next/router";
+import { AnalyzeReportResult } from "@/api/analyze/schema";
+import { useToast } from "@/context/ToastContext";
+import { useTranslation } from "@/hooks/useTranslation";
 
-const useGenerateReport = () => {
+const useReport = (autoHydrate = false) => {
+  const router = useRouter();
+  const { addToast } = useToast();
+  const { t, locale } = useTranslation();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [report, setReport] = useState<OptimizationResult | null>(null);
+  const [report, setReport] = useState<AnalyzeReportResult | null>(null);
 
-  /**
-   * @param resumeText - Raw text extracted from file
-   * @param jobDescription - Raw text from the job field
-   * @param language - The current locale code (e.g., 'en' or 'pt')
-   */
-  const generateReport = async (resumeText: string, jobDescription: string, language: string) => {
-    setIsLoading(true);
-    setError(null); // Reset error state on new attempt
+  const isInitialMount = useRef(true);
 
-    try {
-      // Pass resumeText, jobDescription, and language to the API
-      const response = await axios.post("/api/analyze", {
-        resumeText,
-        jobDescription,
-        language,
-      });
+  const generateReport = useCallback(
+    async (resumeText?: string, jobDescription?: string, model?: string) => {
+      setIsLoading(true);
+      setError(null);
 
-      const result: OptimizationResult = response.data;
+      // Scenario: Re-fetching/Hydrating using stored data if args are missing
+      const finalResume = resumeText || localStorage.getItem("resumeText");
+      const finalJob = jobDescription || localStorage.getItem("jobText");
 
-      // 1. Store the actual analysis so the next page can just read it
-      localStorage.setItem("analysisResult", JSON.stringify(result));
+      if (!finalResume || !finalJob) {
+        const msg = t("report.error.missing_data");
+        setError(msg);
+        setIsLoading(false);
+        return { success: false, error: msg };
+      }
 
-      // 2. Also store these for the "Recover" feature
-      localStorage.setItem("resumeText", resumeText);
-      localStorage.setItem("jobText", jobDescription);
-      localStorage.setItem("selectedLanguage", language); // Persist chosen language
+      try {
+        const response = await axios.post("/api/analyze", {
+          resumeText: finalResume,
+          jobDescription: finalJob,
+          language: locale,
+          model, // Optional model override
+        });
 
-      setReport(result);
-      return { success: true, data: result };
-    } catch (err) {
-      const errorMessage = axios.isAxiosError(err)
-        ? err.response?.data?.message || err.message
-        : "Unknown error";
+        const result: AnalyzeReportResult = response.data;
 
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
+        // Persist everything
+        localStorage.setItem("analysisResult", JSON.stringify(result));
+        localStorage.setItem("resumeText", finalResume);
+        localStorage.setItem("jobText", finalJob);
+
+        setReport(result);
+        return { success: true, data: result };
+      } catch (err) {
+        const errorMessage = axios.isAxiosError(err)
+          ? err.response?.data?.message || err.message
+          : "Unknown error";
+
+        setError(errorMessage);
+        addToast(t("report.error.prefix").replace("{message}", errorMessage), "error");
+        return { success: false, error: errorMessage };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [locale, t, addToast]
+  );
+
+  // Hydration Logic: Runs on the Report page to load from Cache
+  useEffect(() => {
+    if (autoHydrate && isInitialMount.current && router.isReady) {
+      isInitialMount.current = false;
+      const cached = localStorage.getItem("analysisResult");
+
+      if (cached) {
+        try {
+          setReport(JSON.parse(cached));
+        } catch {
+          localStorage.removeItem("analysisResult");
+          generateReport(); // Try to regenerate if cache is corrupt
+        }
+      } else {
+        generateReport(); // No cache, try to generate from text
+      }
     }
-  };
+  }, [autoHydrate, router.isReady, generateReport]);
 
-  return { generateReport, isLoading, error, report };
+  return { generateReport, isLoading, error, report, setReport };
 };
 
-export default useGenerateReport;
+export default useReport;

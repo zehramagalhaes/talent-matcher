@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { ResumeData } from "@/api/schemas/optimizationSchema";
+import { ResumeData } from "@/api/analyze/schema";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface HeaderProps {
@@ -222,7 +222,7 @@ export const DashboardHeader: React.FC<HeaderProps> = ({
               transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
             }}
           >
-            {t("common.download")} PDF
+            {t("common.download")}
           </Button>
         </Stack>
       </Paper>

@@ -29,7 +29,7 @@ const ResumeStructure = z.object({
   certifications: z.array(z.string()).default([]),
 });
 
-export const OptimizationSchema = z.object({
+export const AnalyzeReportSchema = z.object({
   match_score_compact: z.number(),
   match_score_detailed: z.number(),
   recommended_strategy: z.enum(["compact", "detailed"]),
@@ -73,4 +73,4 @@ export const OptimizationSchema = z.object({
 });
 
 export type ResumeData = z.infer<typeof ResumeStructure>;
-export type OptimizationResult = z.infer<typeof OptimizationSchema>;
+export type AnalyzeReportResult = z.infer<typeof AnalyzeReportSchema>;

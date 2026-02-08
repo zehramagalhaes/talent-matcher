@@ -14,13 +14,13 @@ import {
   Fade,
   Alert,
 } from "@mui/material";
-import MainLayout from "@/components/reusables/Layout";
-import UploadForm from "@/components/UploadForm";
+import MainLayout from "@/components/common/Layout";
+import UploadForm from "@/components/forms/UploadForm";
 import { useRouter } from "next/router";
-import useGenerateReport from "@/hooks/useGenerateReport";
+import useReport from "@/hooks/useGenerateReport";
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
-import { LanguageToggle } from "@/components/reusables/LanguageToggle";
+import { LanguageToggle } from "@/components/common/LanguageToggle";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
@@ -33,7 +33,7 @@ function HomeContent() {
   const router = useRouter();
   const { addToast } = useToast();
   const { t, locale } = useTranslation();
-  const { generateReport, isLoading: isSubmitting } = useGenerateReport();
+  const { generateReport, isLoading: isSubmitting } = useReport();
 
   const [isPending, startTransition] = useTransition();
   const [resumeText, setResumeText] = useState<string>("");

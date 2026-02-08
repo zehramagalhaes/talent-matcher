@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { Box, Divider, Chip } from "@mui/material";
-import { OptimizationResult } from "@/api/schemas/optimizationSchema";
+import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { useToast } from "@/context/ToastContext";
 import { generateResumePDF } from "@/utils/pdfGenerator";
 
-import OptimizedResume from "./OptimizedResume";
-import { DashboardHeader } from "./DashboardHeader";
-import { InsightsGrid } from "./InsightsGrid";
-import { StrengthsGaps } from "./StrengthsGaps";
-import { ImprovementModal } from "./ImprovementModal";
+import OptimizedResume from "@/components/reports/resume/sections/OptimizedResume";
+import { DashboardHeader } from "@/components/reports/resume/ResumeAnalysisHeader";
+import { InsightsGrid } from "@/components/reports/resume/sections/InsightsGrid";
+import { StrengthsGaps } from "@/components/reports/resume/sections/StrengthsGaps";
+import { ImprovementModal } from "@/components/modals/ImprovementModal";
 import { useTranslation } from "@/hooks/useTranslation";
-import ExperienceBridge from "./ExperienceBridge";
+import ExperienceBridge from "@/components/reports/resume/sections/ExperienceBridge";
 import { sanitizeToCategorized, sanitizeToStrings, SkillGroup } from "@/utils/dashboardUtils";
 
-export const OptimizationDashboard: React.FC<{ data: OptimizationResult }> = ({ data }) => {
+export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ data }) => {
   const { addToast } = useToast();
   const { t, locale } = useTranslation();
 

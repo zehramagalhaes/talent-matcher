@@ -1,4 +1,4 @@
-export const messages = {
+export const translations = {
   en: {
     "app.description": "Where skills meet opportunities.",
     "app.name": "Talent Matcher",
@@ -10,8 +10,10 @@ export const messages = {
     "common.copy": "Copy",
     "common.discardChanges": "Discard Changes",
     "common.download": "Download",
+    "common.download_analysis": "Download Analysis",
     "common.edit": "Go Back / Edit",
     "common.edit_current": "Edit Current Data",
+    "common.go_home": "Start New Analysis",
     "common.retry": "Retry Analysis",
     "common.start_fresh": "Start Fresh",
     "common.status": "Form Status",
@@ -29,6 +31,7 @@ export const messages = {
     "dashboard.header.preview": "Analysis Results",
     "dashboard.header.strategy.compact": "Compact",
     "dashboard.header.strategy.detailed": "Detailed",
+    "dashboard.header.title": "Analysis Report",
     "dashboard.keywordsToAdd": "Keywords to Add",
     "dashboard.matchScore": "Match Score",
     "dashboard.overallNotes": "Overall Notes",
@@ -78,6 +81,9 @@ export const messages = {
     "modal.update_submission.description":
       "This will re-run the analysis with your updated information.",
     "modal.update_submission.title": "Update Submission",
+    "report.empty.description":
+      "We couldn't find a generated report. This usually happens if the session expired or you haven't submitted a resume yet.",
+    "report.empty.title": "No Analysis Found",
     "report.error.cache_failed": "Failed to load cached report. Generating a new one...",
     "report.error.gen_failed": "Failed to generate report",
     "report.error.missing_data": "Some required data is missing to display the report.",
@@ -110,8 +116,10 @@ export const messages = {
     "common.copy": "Copiar",
     "common.discardChanges": "Descartar alterações",
     "common.download": "Baixar",
+    "common.download_analysis": "Baixar Análise",
     "common.edit": "Voltar / Editar",
     "common.edit_current": "Editar Dados Atuais",
+    "common.go_home": "Começar Nova Análise",
     "common.retry": "Tentar Novamente",
     "common.start_fresh": "Começar do Zero",
     "common.status": "Status do Formulário",
@@ -129,6 +137,7 @@ export const messages = {
     "dashboard.header.preview": "Resultados da Análise",
     "dashboard.header.strategy.compact": "Compacto",
     "dashboard.header.strategy.detailed": "Detalhado",
+    "dashboard.header.title": "Relatório de Análise",
     "dashboard.keywordsToAdd": "Palavras-chave para adicionar",
     "dashboard.matchScore": "Pontuação de Match",
     "dashboard.overallNotes": "Notas Gerais",
@@ -177,6 +186,9 @@ export const messages = {
     "modal.update_submission.description":
       "Isso executará a análise novamente com suas informações atualizadas.",
     "modal.update_submission.title": "Atualizar Envio",
+    "report.empty.description":
+      "Não conseguimos encontrar um relatório gerado. Isso geralmente acontece se a sessão expirou ou se você ainda não enviou um currículo.",
+    "report.empty.title": "Nenhuma Análise Encontrada",
     "report.error.cache_failed": "Falha ao carregar relatório em cache. Gerando um novo...",
     "report.error.gen_failed": "Falha ao gerar o relatório",
     "report.error.missing_data": "Faltam alguns dados obrigatórios para exibir o relatório.",
@@ -201,5 +213,5 @@ export const messages = {
   },
 } as const;
 
-export type Locale = keyof typeof messages;
-export type MessageIds = keyof typeof messages.en;
+export type Locale = keyof typeof translations;
+export type TranslationKeys = keyof typeof translations.en;

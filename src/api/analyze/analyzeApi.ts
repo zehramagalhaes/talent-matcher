@@ -1,9 +1,9 @@
 import axiosClient from "@/api/baseApi";
-import { OptimizationResult } from "../schemas/optimizationSchema";
+import { AnalyzeReportResult } from "./schema";
 
 export type AnalyzeResponse = {
   success: boolean;
-  report?: OptimizationResult;
+  report?: AnalyzeReportResult;
   usedModel?: string;
   availableModels?: string[];
   error?: string;

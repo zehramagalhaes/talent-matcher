@@ -1,5 +1,5 @@
 import * as ReactIntl from "react-intl";
-import { MessageIds } from "@/locales/messages";
+import { TranslationKeys } from "@/locales/translations";
 import { useAppLocale } from "@/context/IntlContext";
 
 interface IntlHook {
@@ -12,7 +12,7 @@ export const useTranslation = () => {
   const intl = useIntl();
   const { locale, setLocale } = useAppLocale();
 
-  const t = (id: MessageIds, values?: Record<string, unknown>): string => {
+  const t = (id: TranslationKeys, values?: Record<string, unknown>): string => {
     return intl.formatMessage({ id: id as string }, values);
   };
 

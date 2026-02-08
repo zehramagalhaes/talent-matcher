@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { ResumeData } from "@/api/schemas/optimizationSchema";
+import { ResumeData } from "@/api/analyze/schema";
 
 interface CategorizedKeywords {
   category: string;
