@@ -5,7 +5,7 @@ import { useToast } from "@/context/ToastContext";
 import { generateResumePDF } from "@/utils/pdfGenerator";
 
 import OptimizedResume from "@/components/reports/resume/sections/OptimizedResume";
-import { DashboardHeader } from "@/components/reports/resume/ResumeAnalysisHeader";
+import { ResumeAnalysisHeader } from "@/components/reports/resume/sections/header/ResumeAnalysisHeader";
 import { InsightsGrid } from "@/components/reports/resume/sections/InsightsGrid";
 import { StrengthsGaps } from "@/components/reports/resume/sections/StrengthsGaps";
 import { ImprovementModal } from "@/components/modals/ImprovementModal";
@@ -98,7 +98,7 @@ export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ 
 
   return (
     <Box sx={{ pb: 8 }}>
-      <DashboardHeader
+      <ResumeAnalysisHeader
         strategy={strategy}
         setStrategy={setStrategy}
         isPreviewMode={false}
