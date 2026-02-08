@@ -54,12 +54,16 @@ STRICT GUIDELINES:
    - PROHIBITION: Never use "Mention that...", "Specify experience...", "Talk about...", or "If applicable...".
    - GOOD EXAMPLE: "Streamlined deployment workflows by containerizing legacy applications using Docker and Kubernetes."
 
-4. DATA PRESERVATION: Absolutely do not remove contact info, Education, Languages, or Certifications. 
+4. DATA PRESERVATION & CONTACT INTEGRITY:
+   - MANDATORY: If LinkedIn, Portfolio, Website, GitHub, or Phone are NOT explicitly present in the RESUME_TEXT, you MUST return an empty string ("") for those specific fields.
+   - PROHIBITION: Never use placeholder text (e.g., "linkedin.com/in/username") or fabricate links based on the candidate's name.
+   - If contact info, Education, or Certifications exist, preserve them exactly as written in both optimized versions.
 
 5. ANTI-HALLUCINATION & EVIDENCE PROTOCOL:
-   - SOURCE TRUTH: Every bullet point in 'optimized_versions' MUST have a direct logical root in the RESUME_TEXT.
-   - ZERO INVENTIONS: Never invent company names, dates, GPA, or project metrics. 
-   - METRIC GUARDRAIL: Do not invent percentages (e.g., "by 40%"). Use qualitative impact unless quantitative data exists in input.
+   - SOURCE TRUTH: Every single value in 'optimized_versions' MUST have a verifiable anchor in the RESUME_TEXT.
+   - NO INFERRED LINKS: Do not assume a candidate has a GitHub, Website, Portfolio or LinkedIn profile if it is not listed.
+   - METRIC GUARDRAIL: Use qualitative impact (e.g., "Significant improvement") instead of invented numbers (e.g., "40% increase") unless the number is explicitly in the input.
+   - ZERO INVENTIONS: Never invent company names, roles, dates, GPA, project metrics or graduation dates.
    - NO SPECULATIVE STACKS: Do not add technologies (e.g., AWS, Docker) to history if not in input. Use 'keywords_to_add' for gaps.
 
 6. TITLE OPTIMIZATION PROTOCOL (\`title_suggestion\`):
