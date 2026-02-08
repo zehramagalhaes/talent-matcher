@@ -5,7 +5,7 @@ import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
 
-const useReport = (autoHydrate = false) => {
+export const useReport = (autoHydrate = false) => {
   const router = useRouter();
   const { addToast } = useToast();
   const { t, locale } = useTranslation();
@@ -85,5 +85,3 @@ const useReport = (autoHydrate = false) => {
 
   return { generateReport, isLoading, error, report, setReport };
 };
-
-export default useReport;

@@ -6,7 +6,7 @@ import HistoryIcon from "@mui/icons-material/History";
 
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
-import useReport from "@/hooks/useGenerateReport";
+import { useReport } from "@/hooks/useReport";
 
 import MainLayout from "@/components/common/Layout";
 import UploadForm from "@/components/forms/UploadForm";

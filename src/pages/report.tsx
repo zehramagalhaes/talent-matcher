@@ -5,7 +5,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 
 import MainLayout from "@/components/common/Layout";
-import useReport from "@/hooks/useGenerateReport";
+import { useReport } from "@/hooks/useReport";
 import { ReportLoadingState } from "@/components/loadings/ReportLoadingState";
 import ErrorCard from "@/components/common/ErrorCard";
 import { ResumeAnalysisReport } from "@/components/reports/resume/ResumeAnalysis";
