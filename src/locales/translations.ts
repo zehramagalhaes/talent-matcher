@@ -104,6 +104,8 @@ export const translations = {
     "toast.generated_success": "Report generated successfully!",
     "toast.reset_success": "Resume restored to original version",
     "toast.starting_fresh": "Report cleared. Starting a new analysis.",
+    "dashboard.actions.downloadSuccess": "Resume downloaded successfully!",
+    "dashboard.actions.improvementAdded": "Resume updated with new improvements!",
   },
   pt: {
     "app.description": "Onde habilidades encontram oportunidades.",
@@ -210,6 +212,8 @@ export const translations = {
     "toast.generated_success": "Relatório gerado com sucesso!",
     "toast.reset_success": "Currículo restaurado para a versão original",
     "toast.starting_fresh": "Relatório apagado. Iniciando nova análise.",
+    "dashboard.actions.downloadSuccess": "Currículo baixado com sucesso!",
+    "dashboard.actions.improvementAdded": "Currículo atualizado com as novas melhorias!",
   },
 } as const;
 

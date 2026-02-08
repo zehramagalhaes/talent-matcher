@@ -80,7 +80,12 @@ export const ResumeAnalysisHeader: React.FC<ResumeAnalysisHeaderProps> = ({
               fontWeight: 700,
               px: 3,
               color: "text.secondary",
-              "&:hover": { color: "error.main", bgcolor: alpha(theme.palette.error.main, 0.04) },
+              "&:hover": {
+                color: "error.main",
+                bgcolor: alpha(theme.palette.error.main, 0.04),
+                borderColor: "error.main",
+              },
+              transition: "all 0.3s ease",
             }}
           >
             {t("common.discardChanges")}

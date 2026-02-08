@@ -1,69 +1,20 @@
 import React from "react";
 import { Box, Typography, Paper, Link, Stack, Grid, useTheme, alpha } from "@mui/material";
 import { ResumeData } from "@/api/analyze/schema";
-import { RESUME_LABELS } from "@/constants";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useResumeInfo } from "@/hooks/useResumeInfo";
+import { BulletList } from "@/components/common/BulletList";
+import { Section } from "@/components/common/Section";
 
-interface Props {
-  resume: ResumeData;
-}
-
-interface Experience {
-  heading: string;
-  bullets_primary: string[];
-  bullets_optional?: string[];
-}
-
-const ContactSeparator = () => (
-  <Box
-    component="span"
-    aria-hidden="true"
-    sx={{
-      display: "inline-flex",
-      alignItems: "center",
-      mx: 0.75,
-      color: "primary.main",
-      fontWeight: "bold",
-      fontSize: "1rem",
-    }}
-  >
-    ·
-  </Box>
-);
-
-const ResumeSection = ({ title, children }: { title: string; children: React.ReactNode }) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{ mb: 4 }}>
-      <Typography
-        variant="subtitle2"
-        sx={{
-          fontWeight: 800,
-          color: "primary.main",
-          borderBottom: "2px solid",
-          borderColor: alpha(theme.palette.primary.main, 0.2),
-          pb: 0.5,
-          mb: 2,
-          letterSpacing: 1.5,
-          textTransform: "uppercase",
-        }}
-      >
-        {title}
-      </Typography>
-      {children}
-    </Box>
-  );
-};
-
-const OptimizedResume: React.FC<Props> = ({ resume }) => {
+export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) => {
   const { locale } = useTranslation();
   const theme = useTheme();
-  const isDarkMode = theme.palette.mode === "dark";
+  const { labels, contactList, formattedExperiences, footerSections } = useResumeInfo(
+    resume,
+    locale
+  );
 
   if (!resume) return null;
-
-  const lang = (locale === "pt" ? "pt" : "en") as "en" | "pt";
-  const t = RESUME_LABELS[lang];
 
   return (
     <Paper
@@ -71,13 +22,11 @@ const OptimizedResume: React.FC<Props> = ({ resume }) => {
       sx={{
         p: { xs: 4, md: 8 },
         borderRadius: 4,
-        bgcolor: isDarkMode ? alpha(theme.palette.background.paper, 0.8) : "#ffffff",
-        color: "text.primary",
-        border: "1px solid",
-        borderColor: alpha(theme.palette.divider, 0.1),
-        backdropFilter: "blur(10px)",
         position: "relative",
         overflow: "hidden",
+        bgcolor: (t) =>
+          t.palette.mode === "dark" ? alpha(t.palette.background.paper, 0.8) : "#fff",
+        border: (t) => `1px solid ${alpha(t.palette.divider, 0.1)}`,
         "&::before": {
           content: '""',
           position: "absolute",
@@ -89,22 +38,16 @@ const OptimizedResume: React.FC<Props> = ({ resume }) => {
         },
       }}
     >
-      {/* HEADER SECTION */}
+      {/* 1. HEADER */}
       <Box sx={{ textAlign: "center", mb: 5 }}>
-        <Typography variant="h3" sx={{ fontWeight: 900, letterSpacing: -1, mb: 0.5 }}>
-          {resume.name?.toUpperCase() || "NAME NOT PROVIDED"}
+        <Typography variant="h3" sx={{ fontWeight: 900, letterSpacing: -1 }}>
+          {resume.name?.toUpperCase()}
         </Typography>
         <Typography
           variant="h6"
-          sx={{
-            color: "primary.main",
-            fontWeight: 700,
-            mb: 2,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-          }}
+          sx={{ color: "primary.main", fontWeight: 700, mb: 2, textTransform: "uppercase" }}
         >
-          {resume.title || ""}
+          {resume.title}
         </Typography>
 
         <Stack
@@ -112,169 +55,99 @@ const OptimizedResume: React.FC<Props> = ({ resume }) => {
           flexWrap="wrap"
           justifyContent="center"
           alignItems="center"
-          sx={{ typography: "body2", color: "text.secondary", fontWeight: 500 }}
+          sx={{ typography: "body2", color: "text.secondary", gap: 0.5 }}
         >
-          {resume.location && <span>{resume.location}</span>}
-          {resume.phone && (
-            <>
-              <ContactSeparator />
-              <span>{resume.phone}</span>
-            </>
-          )}
-          {resume.email && (
-            <>
-              <ContactSeparator />
-              <span>{resume.email}</span>
-            </>
-          )}
-          {resume.linkedin && (
-            <>
-              <ContactSeparator />
-              <Link href={resume.linkedin} target="_blank" color="primary" sx={{ fontWeight: 600 }}>
-                LinkedIn
-              </Link>
-            </>
-          )}
-          {resume.github && (
-            <>
-              <ContactSeparator />
-              <Link href={resume.github} target="_blank" color="primary" sx={{ fontWeight: 600 }}>
-                GitHub
-              </Link>
-            </>
-          )}
-          {/* Restored Portfolio & Website */}
-          {resume.portfolio && (
-            <>
-              <ContactSeparator />
-              <Link
-                href={resume.portfolio}
-                target="_blank"
-                color="primary"
-                sx={{ fontWeight: 600 }}
-              >
-                {t.portfolio || "Portfolio"}
-              </Link>
-            </>
-          )}
-          {resume.website && (
-            <>
-              <ContactSeparator />
-              <Link href={resume.website} target="_blank" color="primary" sx={{ fontWeight: 600 }}>
-                Website
-              </Link>
-            </>
-          )}
+          {resume.location}
+          {contactList.map((c, i) => (
+            <React.Fragment key={i}>
+              <Box component="span" sx={{ mx: 0.5, color: "primary.main", fontWeight: "bold" }}>
+                ·
+              </Box>
+              {c.isLink ? (
+                <Link
+                  href={c.val!}
+                  target="_blank"
+                  color="primary"
+                  sx={{ fontWeight: 600, textDecoration: "none" }}
+                >
+                  {c.lab}
+                </Link>
+              ) : (
+                <span>{c.val}</span>
+              )}
+            </React.Fragment>
+          ))}
         </Stack>
       </Box>
 
-      {/* SUMMARY */}
-      {resume.summary && resume.summary.length > 0 && (
-        <ResumeSection title={t.summary}>
-          {resume.summary.map((point, i) => (
+      {/* 2. SUMMARY */}
+      {resume.summary?.length > 0 && (
+        <Section title={labels.summary}>
+          {resume.summary.map((s, i) => (
             <Typography
               key={i}
               variant="body1"
-              sx={{ mb: 1.5, lineHeight: 1.7, color: "text.secondary" }}
+              sx={{ mb: 1.5, color: "text.secondary", lineHeight: 1.7 }}
             >
-              {point}
+              {s}
             </Typography>
           ))}
-        </ResumeSection>
+        </Section>
       )}
 
-      {/* EXPERIENCE */}
-      {resume.experience && resume.experience.length > 0 && (
-        <ResumeSection title={t.experience}>
-          {resume.experience.map((exp: Experience, i) => (
-            <Box key={i} sx={{ mb: 4 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
+      {/* 3. EXPERIENCE */}
+      {formattedExperiences.length > 0 && (
+        <Section title={labels.experience}>
+          {formattedExperiences.map((exp, i) => (
+            <Box key={i} sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>
                 {exp.heading}
               </Typography>
-              <Box component="ul" sx={{ pl: 2, mt: 0, "& li": { mb: 1 } }}>
-                {exp.bullets_primary.map((bullet, j) => (
-                  <Typography
-                    component="li"
-                    key={`p-${j}`}
-                    variant="body2"
-                    sx={{ lineHeight: 1.7, color: "text.secondary" }}
-                  >
-                    {bullet}
-                  </Typography>
-                ))}
-                {exp.bullets_optional?.map((bullet, k) => (
-                  <Typography
-                    component="li"
-                    key={`o-${k}`}
-                    variant="body2"
-                    sx={{ lineHeight: 1.7, color: "text.secondary" }}
-                  >
-                    {bullet}
-                  </Typography>
-                ))}
-              </Box>
+              <BulletList items={exp.allBullets} />
             </Box>
           ))}
-        </ResumeSection>
+        </Section>
       )}
 
-      {/* SKILLS */}
-      {resume.skills && resume.skills.length > 0 && (
-        <ResumeSection title={t.skills}>
-          <Grid container spacing={4}>
-            {resume.skills.map((skillGroup, i) => (
-              <Grid size={{ xs: 12, sm: 6 }} key={i}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 800, mb: 1 }}>
-                    {skillGroup.category}
-                  </Typography>
-                  <Typography variant="body2" sx={{ lineHeight: 1.8, color: "text.secondary" }}>
-                    {skillGroup.items.join("  •  ")}
-                  </Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        </ResumeSection>
-      )}
-
-      {/* EDUCATION, LANGUAGES & RESTORED CERTIFICATIONS */}
+      {/* 4. SKILLS & FOOTER */}
       <Grid container spacing={4}>
-        {resume.education && resume.education.length > 0 && (
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <ResumeSection title={t.education}>
-              {resume.education.map((edu, i) => (
-                <Typography key={i} variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-                  {edu}
+        {resume.skills?.length > 0 && (
+          <Grid size={12}>
+            <Section title={labels.skills}>
+              <Grid container spacing={2}>
+                {resume.skills.map((s, i) => (
+                  <Grid size={{ xs: 12, sm: 6 }} key={i}>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                      {s.category}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {s.items.join("  •  ")}
+                    </Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </Section>
+          </Grid>
+        )}
+
+        {footerSections.map((sec, i) => (
+          <Grid size={{ xs: 12, sm: 6 }} key={i}>
+            <Section title={sec.title}>
+              {sec.isInline ? (
+                <Typography variant="body2" color="text.secondary">
+                  {sec.data.join(" · ")}
                 </Typography>
-              ))}
-            </ResumeSection>
+              ) : (
+                sec.data.map((item: string, j: number) => (
+                  <Typography key={j} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    {item}
+                  </Typography>
+                ))
+              )}
+            </Section>
           </Grid>
-        )}
-        {/* Restored Certifications */}
-        {resume.certifications && resume.certifications.length > 0 && (
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <ResumeSection title={t.certifications || "Certifications"}>
-              {resume.certifications.map((cert, i) => (
-                <Typography key={i} variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-                  {cert}
-                </Typography>
-              ))}
-            </ResumeSection>
-          </Grid>
-        )}
-        {resume.languages && resume.languages.length > 0 && (
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <ResumeSection title={t.languages}>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {resume.languages.join(" · ")}
-              </Typography>
-            </ResumeSection>
-          </Grid>
-        )}
+        ))}
       </Grid>
     </Paper>
   );
 };
-
-export default OptimizedResume;
