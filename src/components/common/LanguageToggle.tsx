@@ -1,7 +1,7 @@
 import React from "react";
 import { ToggleButton, ToggleButtonGroup, Typography, Box } from "@mui/material";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Locale } from "@/locales/messages";
+import { Locale } from "@/locales/translations";
 
 export const LanguageToggle: React.FC = () => {
   const { locale, setLocale } = useTranslation();

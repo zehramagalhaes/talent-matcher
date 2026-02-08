@@ -23,12 +23,14 @@ export const ImprovementModal: React.FC<ModalProps> = ({ keyword, onClose, onCon
 
   return (
     <Dialog
-      PaperProps={{
-        sx: {
-          borderRadius: 6,
-          p: 1,
-          backdropFilter: "blur(10px)",
-          bgcolor: alpha(theme.palette.background.paper, 0.9),
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 6,
+            p: 1,
+            backdropFilter: "blur(10px)",
+            bgcolor: alpha(theme.palette.background.paper, 0.9),
+          },
         },
       }}
       open={Boolean(keyword)}

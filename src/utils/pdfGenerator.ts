@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
-import { ResumeData } from "@/api/schemas/optimizationSchema";
-import { messages, Locale } from "@/locales/messages";
+import { ResumeData } from "@/api/analyze/schema";
+import { translations, Locale } from "@/locales/translations";
 import { detectLanguage } from "./languageUtils";
 
 export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLocale?: Locale) => {
@@ -13,7 +13,7 @@ export const generateResumePDF = (resume: ResumeData, strategy: string, forcedLo
 
   const detectedLocale: Locale = detectLanguage(resume.languages) ? "pt" : "en";
   const activeLocale = forcedLocale || detectedLocale;
-  const t = messages[activeLocale];
+  const t = translations[activeLocale];
 
   const COLOR_PRIMARY = [25, 118, 210] as const;
   const COLOR_TEXT_MAIN = [33, 33, 33] as const;

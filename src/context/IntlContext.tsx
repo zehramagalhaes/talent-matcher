@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { messages, Locale } from "@/locales/messages";
+import { translations, Locale } from "@/locales/translations";
 
 interface IntlContextType {
   locale: Locale;
@@ -16,7 +16,7 @@ const TypedIntlProvider = IntlProvider as unknown as React.FC<
 export const AppIntlProvider = ({ children }: { children: ReactNode }) => {
   const [locale, setLocale] = useState<Locale>("en");
 
-  const currentMessages = (messages[locale] || messages.en) as Record<string, string>;
+  const currentMessages = (translations[locale] || translations.en) as Record<string, string>;
 
   return (
     <IntlContext.Provider value={{ locale, setLocale }}>

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { OptimizationSchema } from "@/api/schemas/optimizationSchema";
+import { AnalyzeReportSchema } from "@/api/analyze/schema";
 import { buildPrompt } from "@/api/prompt";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
 
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rawData = JSON.parse(cleanedJson);
 
     // 3. Validation with Hallucination Check
-    const validation = OptimizationSchema.safeParse(rawData);
+    const validation = AnalyzeReportSchema.safeParse(rawData);
 
     if (!validation.success) {
       console.error("ZOD_VALIDATION_FAILURE:", validation.error.format());
