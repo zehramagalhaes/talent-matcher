@@ -52,7 +52,7 @@ export const generateResumeDocx = async (
 
   // --- Contact Row with Blue Underlined Links ---
   const contactParts: (TextRun | ExternalHyperlink)[] = [];
-  getContactData(resume, t).forEach((item: ContactItem, i: number) => {
+  getContactData(resume).forEach((item: ContactItem, i: number) => {
     if (i > 0) {
       contactParts.push(new TextRun({ text: SEP.PIPE, color: "999999", size: 18, font: FONT }));
     }
