@@ -13,6 +13,7 @@
     "lint:fix": "prettier --write \"src/**/*.{ts,tsx,json,md}\" && eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
+    "type-check": "tsc --noEmit",
     "language:sort": "node scripts/sort-messages.mjs"
   },
   "dependencies": {
@@ -69,6 +70,9 @@
     ],
     "src/**/*.{json,md}": [
       "prettier --write"
+    ],
+    "**/*.{ts,tsx}": [
+      "bash -c 'npm run type-check'"
     ]
   }
 }
