@@ -1,8 +1,9 @@
 import React from "react";
-import { Box, Divider, Chip } from "@mui/material";
+import { Box, Divider, Chip, Stack, Container } from "@mui/material";
 import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { useToast } from "@/context/ToastContext";
-import { generateResumePDF } from "@/utils/pdfGenerator";
+import { generateResumePDF } from "@/utils/generate/pdfGenerator";
+import { generateResumeDocx } from "@/utils/generate/docxGenerator";
 import { useTranslation } from "@/hooks/useTranslation";
 import { sanitizeToCategorized, sanitizeToStrings } from "@/utils/dashboardUtils";
 
@@ -17,7 +18,6 @@ import { useResumeAnalysis } from "@/hooks/useResumeAnalysis";
 export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ data }) => {
   const { addToast } = useToast();
   const { t, locale } = useTranslation();
-
   const {
     strategy,
     setStrategy,
@@ -31,23 +31,26 @@ export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ 
     confirmSkillImprovement,
   } = useResumeAnalysis(data);
 
-  // Data Sanitization (Memoized internally by component or handled here)
   const categorizedKeywords = sanitizeToCategorized(data.keywords_to_add as unknown[]);
   const safeStrengths = sanitizeToStrings(data.strengths as unknown[]);
   const safeGaps = sanitizeToStrings(data.gaps as unknown[]);
 
-  const handleDownload = () => {
-    generateResumePDF(localVersions[strategy], strategy, locale);
-    addToast(t("dashboard.actions.downloadSuccess"), "success");
-  };
-
-  const onConfirmImprovement = () => {
-    confirmSkillImprovement();
-    addToast(t("dashboard.actions.improvementAdded"), "success");
+  const handleDownload = async (format: "pdf" | "docx") => {
+    try {
+      if (format === "pdf") {
+        generateResumePDF(localVersions[strategy], strategy, locale);
+      } else {
+        await generateResumeDocx(localVersions[strategy], strategy, locale);
+      }
+      addToast(t("dashboard.actions.downloadSuccess"), "success");
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
   };
 
   return (
-    <Box sx={{ pb: 8 }}>
+    <Container maxWidth="lg" sx={{ pb: 10 }}>
+      {/* TIER 1: Navigation & Global Actions */}
       <ResumeAnalysisHeader
         strategy={strategy}
         setStrategy={setStrategy}
@@ -58,36 +61,49 @@ export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ 
         detailedData={localVersions.detailed}
       />
 
-      <InsightsGrid
-        resume={currentResume}
-        score={currentScore}
-        notes={data.scoring_rubric.overall_notes}
-        keywords={categorizedKeywords}
-        viewType={strategy}
-        onAddKeyword={setPendingImprovement}
-      />
+      <Stack spacing={6} sx={{ mt: 4 }}>
+        {/* TIER 2: High-Level Insights (Score + Notes) */}
+        <InsightsGrid
+          resume={currentResume}
+          score={currentScore}
+          notes={data.scoring_rubric.overall_notes}
+          keywords={categorizedKeywords}
+          viewType={strategy}
+          onAddKeyword={setPendingImprovement}
+        />
 
-      <StrengthsGaps strengths={safeStrengths} gaps={safeGaps} />
+        {/* TIER 3: Detailed Feedback (Strengths vs Gaps) */}
+        <StrengthsGaps strengths={safeStrengths} gaps={safeGaps} />
 
-      <ExperienceBridge suggestions={data.experience_bridge_suggestions} onAdd={updateExperience} />
+        {/* TIER 4: Actionable Improvements */}
+        <ExperienceBridge
+          suggestions={data.experience_bridge_suggestions}
+          onAdd={updateExperience}
+        />
 
-      <Box sx={{ textAlign: "center", mb: 4 }}>
-        <Divider>
-          <Chip
-            label={t("dashboard.header.preview").toUpperCase()}
-            size="small"
-            sx={{ fontWeight: "bold", px: 2 }}
-          />
-        </Divider>
-      </Box>
+        {/* TIER 5: Final Document Preview */}
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 6 }}>
+            <Chip
+              label={t("dashboard.header.preview").toUpperCase()}
+              size="small"
+              sx={{
+                fontWeight: "900",
+                px: 3,
+                letterSpacing: 1.5,
+              }}
+            />
+          </Divider>
 
-      <OptimizedResume resume={currentResume} />
+          <OptimizedResume resume={currentResume} />
+        </Box>
+      </Stack>
 
       <ImprovementModal
         keyword={pendingImprovement}
         onClose={() => setPendingImprovement(null)}
-        onConfirm={onConfirmImprovement}
+        onConfirm={confirmSkillImprovement}
       />
-    </Box>
+    </Container>
   );
 };

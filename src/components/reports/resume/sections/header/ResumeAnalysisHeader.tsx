@@ -1,17 +1,31 @@
-import React from "react";
-import { Stack, Box, Typography, Button, Paper, useTheme, alpha } from "@mui/material";
+import React, { useState } from "react";
+import {
+  Stack,
+  Box,
+  Typography,
+  Button,
+  Paper,
+  useTheme,
+  alpha,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import PdfIcon from "@mui/icons-material/PictureAsPdf";
+import DocxIcon from "@mui/icons-material/Description";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StrategySwitcher } from "./StrategySwitcher";
-
 import { ResumeData } from "@/api/analyze/schema";
 
 export interface ResumeAnalysisHeaderProps {
   strategy: "compact" | "detailed";
   setStrategy: (val: "compact" | "detailed") => void;
   isPreviewMode: boolean;
-  onDownload: () => void;
+  onDownload: (format: "pdf" | "docx") => void;
   onReset: () => void;
   compactData: ResumeData;
   detailedData: ResumeData;
@@ -28,6 +42,21 @@ export const ResumeAnalysisHeader: React.FC<ResumeAnalysisHeaderProps> = ({
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleFormatSelect = (format: "pdf" | "docx") => {
+    onDownload(format);
+    handleCloseMenu();
+  };
 
   return (
     <Box sx={{ mb: 6, width: "100%" }}>
@@ -91,22 +120,68 @@ export const ResumeAnalysisHeader: React.FC<ResumeAnalysisHeaderProps> = ({
             {t("common.discardChanges")}
           </Button>
 
+          {/* DOWNLOAD DROPDOWN BUTTON */}
           <Button
-            startIcon={<DownloadIcon />}
+            id="download-split-button"
+            aria-controls={open ? "download-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? "true" : undefined}
             variant="contained"
-            onClick={onDownload}
+            onClick={handleOpenMenu}
+            startIcon={<DownloadIcon />}
+            endIcon={<ExpandMoreIcon />}
             sx={{
-              px: 5,
+              px: 4,
               py: 1.5,
               borderRadius: "14px",
               fontWeight: 900,
               background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
               boxShadow: `0 10px 25px -6px ${alpha(theme.palette.primary.main, 0.5)}`,
               "&:hover": { transform: "translateY(-2px)" },
+              transition: "transform 0.2s ease",
             }}
           >
             {t("common.download")}
           </Button>
+
+          <Menu
+            id="download-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleCloseMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            slotProps={{
+              paper: {
+                sx: {
+                  borderRadius: 3,
+                  mt: 1,
+                  minWidth: 180,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                  border: `1px solid ${theme.palette.divider}`,
+                },
+              },
+            }}
+          >
+            <MenuItem onClick={() => handleFormatSelect("pdf")} sx={{ py: 1.5 }}>
+              <ListItemIcon>
+                <PdfIcon fontSize="small" sx={{ color: "#d32f2f" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="PDF Document"
+                slotProps={{ primary: { sx: { fontWeight: 600, fontSize: "0.9rem" } } }}
+              />
+            </MenuItem>
+            <MenuItem onClick={() => handleFormatSelect("docx")} sx={{ py: 1.5 }}>
+              <ListItemIcon>
+                <DocxIcon fontSize="small" sx={{ color: "#1976d2" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Word Document"
+                slotProps={{ primary: { sx: { fontWeight: 600, fontSize: "0.9rem" } } }}
+              />
+            </MenuItem>
+          </Menu>
         </Stack>
       </Paper>
     </Box>

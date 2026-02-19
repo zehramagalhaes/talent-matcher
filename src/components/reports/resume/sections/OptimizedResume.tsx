@@ -5,6 +5,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useResumeInfo } from "@/hooks/useResumeInfo";
 import { BulletList } from "@/components/common/BulletList";
 import { Section } from "@/components/common/Section";
+import { SEP, GEN_CONFIG } from "@/utils/generate/resumeGenerator.utils";
 
 export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) => {
   const { locale } = useTranslation();
@@ -34,7 +35,10 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
           left: 0,
           right: 0,
           height: "6px",
-          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+          // Uses shared GEN_CONFIG color for parity
+          background:
+            GEN_CONFIG.COLORS.PRIMARY ||
+            `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
         },
       }}
     >
@@ -61,14 +65,19 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
           {contactList.map((c, i) => (
             <React.Fragment key={i}>
               <Box component="span" sx={{ mx: 0.5, color: "primary.main", fontWeight: "bold" }}>
-                ·
+                {/* Uses shared SEP.PIPE for parity */}
+                {SEP.PIPE.trim()}
               </Box>
               {c.isLink ? (
                 <Link
                   href={c.val!}
                   target="_blank"
                   color="primary"
-                  sx={{ fontWeight: 600, textDecoration: "none" }}
+                  sx={{
+                    fontWeight: 600,
+                    textDecoration: "underline", // Added underline to match PDF link style
+                    textUnderlineOffset: "2px",
+                  }}
                 >
                   {c.lab}
                 </Link>
@@ -112,7 +121,7 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
       {/* 4. SKILLS & FOOTER */}
       <Grid container spacing={4}>
         {resume.skills?.length > 0 && (
-          <Grid size={12}>
+          <Grid size={{ xs: 12 }}>
             <Section title={labels.skills}>
               <Grid container spacing={2}>
                 {resume.skills.map((s, i) => (
@@ -121,7 +130,8 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
                       {s.category}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {s.items.join("  •  ")}
+                      {/* Uses shared SEP.SKILL for parity */}
+                      {s.items.join(SEP.SKILL)}
                     </Typography>
                   </Grid>
                 ))}
@@ -135,6 +145,7 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
             <Section title={sec.title}>
               {sec.isInline ? (
                 <Typography variant="body2" color="text.secondary">
+                  {/* Join with a centered dot or pipe as per your preference */}
                   {sec.data.join(" · ")}
                 </Typography>
               ) : (
