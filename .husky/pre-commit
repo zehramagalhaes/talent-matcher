@@ -1,16 +1,36 @@
-# Prevent commits directly to protected branches
+#!/usr/bin/env bash
+
+# Colors for better visibility
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}🔍 Running pre-commit checks...${NC}"
+
+# 1. Prevent commits directly to protected branches
 PROTECTED_BRANCHES=("main" "develop" "production")
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 for branch in "${PROTECTED_BRANCHES[@]}"; do
   if [ "$CURRENT_BRANCH" = "$branch" ]; then
-    echo "❌ Error: You cannot commit directly to the '$branch' branch."
+    echo -e "${RED}❌ Error: You cannot commit directly to the '$branch' branch.${NC}"
     echo "Please create a feature branch and submit a pull request instead."
-    echo ""
-    echo "To create a feature branch, run:"
-    echo "  git checkout -b feature/your-feature-name"
+    echo -e "Run: ${GREEN}git checkout -b feature/your-feature-name${NC}"
     exit 1
   fi
 done
 
-npx lint-staged
+# 2. Run lint-staged
+echo -e "${YELLOW}🚀 Linting, formatting, and type-checking...${NC}"
+if npx lint-staged; then
+  echo -e "${GREEN}✅ Pre-commit checks passed!${NC}"
+else
+  echo ""
+  echo -e "${RED}❌ Pre-commit checks failed.${NC}"
+  echo -e "${YELLOW}Suggested Fixes:${NC}"
+  echo "  - If it's a LINT error: Run 'npm run lint:fix' to auto-fix most issues."
+  echo "  - If it's a TYPE error: Check the specific file paths above for TypeScript mismatches."
+  echo "  - If it's a FORMAT error: Prettier should have auto-fixed it, try staging changes again."
+  exit 1
+fi

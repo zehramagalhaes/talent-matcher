@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Typography, Box, Paper, useTheme, alpha } from "@mui/material";
+import { Grid2 as Grid, Typography, Box, Paper, useTheme, alpha } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { useTranslation } from "@/hooks/useTranslation";
