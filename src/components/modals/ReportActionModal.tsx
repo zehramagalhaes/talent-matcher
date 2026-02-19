@@ -1,5 +1,4 @@
 import { useTranslation } from "@/hooks/useTranslation";
-import theme from "@/styles/theme";
 import {
   alpha,
   Button,
@@ -8,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   Typography,
+  useTheme,
 } from "@mui/material";
 
 interface ReportActionModalProps {
@@ -24,6 +24,7 @@ export const ReportActionModal = ({
   onFresh,
 }: ReportActionModalProps) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   return (
     <Dialog
       open={open}
