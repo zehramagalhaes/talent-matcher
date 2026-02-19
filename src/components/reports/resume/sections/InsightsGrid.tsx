@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Grid, Paper, Typography, Box, useTheme, alpha, Stack } from "@mui/material";
+import { Grid2 as Grid, Paper, Typography, Box, useTheme, alpha, Stack } from "@mui/material";
 import { useTranslation } from "@/hooks/useTranslation";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { ScoreCard } from "@/components/cards/ScoreCard";

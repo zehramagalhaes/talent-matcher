@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Typography, Grid2, Stack } from "@mui/material";
+import { Box, Typography, Grid2 as Grid, Stack } from "@mui/material";
 import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import { useTranslation } from "@/hooks/useTranslation";
 import { SuggestionCard } from "@/components/cards/SuggestionCard"; // Updated below
@@ -27,9 +27,9 @@ const ExperienceBridge: React.FC<ExperienceBridgeProps> = ({ suggestions, onAdd 
         </Typography>
       </Stack>
 
-      <Grid2 container spacing={2.5}>
+      <Grid container spacing={2.5}>
         {suggestions.map((item, idx) => (
-          <Grid2 size={{ xs: 12, sm: 6, lg: 4 }} key={idx}>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={idx}>
             <SuggestionCard
               item={item}
               isAdded={addedItems.includes(idx)}
@@ -38,9 +38,9 @@ const ExperienceBridge: React.FC<ExperienceBridgeProps> = ({ suggestions, onAdd 
                 setAddedItems((p) => [...p, idx]);
               }}
             />
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
     </Box>
   );
 };

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, Paper, Link, Stack, Grid, useTheme, alpha } from "@mui/material";
+import { Box, Typography, Paper, Link, Stack, Grid2 as Grid, useTheme, alpha } from "@mui/material";
 import { ResumeData } from "@/api/analyze/schema";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useResumeInfo } from "@/hooks/useResumeInfo";
