@@ -76,7 +76,6 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       localStorage.setItem("resumeName", file.name);
 
       onResumeUpload(file, text);
-      addToast(t("form.upload.success"), "success");
     } catch (error) {
       addToast(t("form.resume.error.read"), "error");
       throw error; // Re-throw for potential higher-level handling/logging

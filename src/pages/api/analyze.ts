@@ -9,12 +9,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-  // Destructure language from the body (passed from your useTranslation/Home state)
-  const { resumeText, jobDescription, language } = req.body;
+  const { resumeText, jobDescription, language, selectedModel } = req.body;
 
   try {
+    const modelId = selectedModel || DEFAULT_GEMINI_MODEL;
+
     const model = genAI.getGenerativeModel({
-      model: DEFAULT_GEMINI_MODEL,
+      model: modelId,
       generationConfig: {
         responseMimeType: "application/json",
       },
@@ -47,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Return result along with the model used for verification if needed
     return res.status(200).json(validation.data);
   } catch (error: unknown) {
     console.error("CRITICAL_API_ERROR:", error);
