@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Box, Button, Typography, Container, Stack, alpha, useTheme, Fade } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -21,10 +21,23 @@ function ReportContent() {
   const router = useRouter();
   const theme = useTheme();
   const [openModal, setOpenModal] = useState(false);
+
+  // --- Dynamic Model State ---
+  const [activeModel, setActiveModel] = useState<string>(DEFAULT_GEMINI_MODEL);
+
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    if (savedModel) {
+      setActiveModel(savedModel);
+    }
+  }, []);
+
   const { report, isLoading, error, generateReport } = useReport(true);
 
   const renderMainContent = () => {
-    if (isLoading) return <ReportLoadingState model={DEFAULT_GEMINI_MODEL} />;
+    // Pass the activeModel to the loading state for accurate feedback
+    if (isLoading) return <ReportLoadingState model={activeModel} />;
 
     if (error)
       return (
@@ -34,7 +47,8 @@ function ReportContent() {
             fullWidth
             variant="contained"
             startIcon={<RefreshIcon />}
-            onClick={() => generateReport()}
+            // Ensure retry uses the active model
+            onClick={() => generateReport(undefined, undefined, activeModel)}
             sx={{ mt: 2, borderRadius: 3, fontWeight: 900 }}
           >
             {t("common.retry")}
@@ -67,6 +81,8 @@ function ReportContent() {
               >
                 {t("common.edit")}
               </Button>
+
+              {/* Dynamic Model Badge */}
               <Typography
                 variant="caption"
                 sx={{
@@ -76,10 +92,12 @@ function ReportContent() {
                   px: 2,
                   py: 0.8,
                   borderRadius: 2,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
                   border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
                 }}
               >
-                {t("report.model_label")?.replace("{model}", DEFAULT_GEMINI_MODEL)}
+                {t("report.model_label")?.replace("{model}", activeModel)}
               </Typography>
             </Stack>
 
@@ -92,7 +110,12 @@ function ReportContent() {
           onClose={() => setOpenModal(false)}
           onRecover={() => router.push("/?edit=true")}
           onFresh={() => {
-            localStorage.clear();
+            // Be careful with localStorage.clear() as it removes the API selection too
+            // Perhaps only remove the form data instead:
+            localStorage.removeItem("analysisResult");
+            localStorage.removeItem("resumeText");
+            localStorage.removeItem("jobText");
+            localStorage.removeItem("selectedModel");
             router.push("/");
           }}
         />

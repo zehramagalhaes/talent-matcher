@@ -37,7 +37,7 @@ export const useReport = (autoHydrate = false) => {
           resumeText: finalResume,
           jobDescription: finalJob,
           language: locale,
-          model, // Optional model override
+          model,
         });
 
         const result: AnalyzeReportResult = response.data;
