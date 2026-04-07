@@ -1,0 +1,19 @@
+{
+  "entryFile": "api/src/server.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": [
+    "api/src/controllers/**/*Controller.ts"
+  ],
+  "spec": {
+    "outputDirectory": "api/generated",
+    "specVersion": 3,
+    "basePath": "/",
+    "name": "TalentMatcher API",
+    "description": "API for AI-powered resume and job description compatibility analysis",
+    "version": "1.0.0"
+  },
+  "routes": {
+    "routesDir": "api/generated",
+    "routesFileName": "routes.ts"
+  }
+}
