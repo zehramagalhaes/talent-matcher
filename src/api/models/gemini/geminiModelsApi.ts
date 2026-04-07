@@ -8,8 +8,7 @@ export interface FetchModelsResponse {
 
 export const fetchAvailableModels = async (): Promise<FetchModelsResponse> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api";
-    const response = await fetch(`${baseUrl}/models?t=${Date.now()}`, {
+    const response = await fetch(`/api/models?t=${Date.now()}`, {
       method: "GET",
       headers: {
         "Cache-Control": "no-cache",
