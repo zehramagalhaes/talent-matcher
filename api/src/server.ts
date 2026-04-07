@@ -5,7 +5,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
-import { RegisterRoutes } from '../generated/routes';
 
 // Load environment variables
 const rootEnvPath = path.resolve(__dirname, '../../.env.local');
@@ -62,9 +61,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (requestLogs.length > 100) requestLogs.shift();
   next();
 });
-
-// Register tsoa-generated routes
-RegisterRoutes(app);
 
 // Debug endpoint
 app.get('/debug', (req: Request, res: Response) => {

@@ -1,4 +1,4 @@
-import { Controller, Route } from 'tsoa';
+import { Controller, Get, Route } from 'tsoa';
 
 interface Model {
   id: string;
@@ -27,7 +27,8 @@ export class ModelsController extends Controller {
    * 
    * @returns List of available models with IDs and display names
    */
-  
+
+  @Get('models')
   async getModels(): Promise<ModelsResponse> {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY_ALT;
     const baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
