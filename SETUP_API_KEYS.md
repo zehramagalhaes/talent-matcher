@@ -84,7 +84,7 @@ nano .env.local
 
 ```env
 # Replace with your actual key
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyBDsdkg5BaXO0lMBVJuBg7iaU7YBVy4pE4
+NEXT_PUBLIC_GEMINI_API_KEY=your_api_key
 ```
 
 ### 2.3 Test Locally
