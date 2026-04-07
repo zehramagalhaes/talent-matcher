@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAppContext } from "@/hooks/useAppContext";
 
 export const useReport = (autoHydrate = false) => {
   const router = useRouter();
@@ -12,6 +13,7 @@ export const useReport = (autoHydrate = false) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<AnalyzeReportResult | null>(null);
+  const { baseUrl } = useAppContext();
 
   const isInitialMount = useRef(true);
 
@@ -32,7 +34,6 @@ export const useReport = (autoHydrate = false) => {
       }
 
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api";
         const response = await fetch(`${baseUrl}/analyze`, {
           method: "POST",
           headers: {
@@ -70,7 +71,7 @@ export const useReport = (autoHydrate = false) => {
         setIsLoading(false);
       }
     },
-    [locale, t, addToast]
+    [locale, t, addToast, baseUrl]
   );
 
   // Hydration Logic: Runs on the Report page to load from Cache

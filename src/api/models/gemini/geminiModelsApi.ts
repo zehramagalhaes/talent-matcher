@@ -1,4 +1,5 @@
 import { GeminiModelOption } from "./geminiModels.types";
+import { getApiBaseUrl } from "@/utils/api";
 
 export interface FetchModelsResponse {
   success: boolean;
@@ -8,7 +9,7 @@ export interface FetchModelsResponse {
 
 export const fetchAvailableModels = async (): Promise<FetchModelsResponse> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api";
+    const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/models?t=${Date.now()}`, {
       method: "GET",
       headers: {
