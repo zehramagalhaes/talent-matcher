@@ -8,28 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Global toast notification system with context provider
-- Material UI professional form styling for resume and job description input
-- react-hook-form and zod validation for form inputs
-- useGenerateReport hook with Anti-Gravity Agent analysis
-- Branch protection rules in Husky pre-commit hook
-- GitHub Actions workflow for Vercel deployment
-- ESLint and Prettier configuration for code quality
-- Pull request template with changelog section
+- `AppContext` and `useAppContext` hook for global configuration management
+- `api/index.ts` entry point to support unified Express backend on Vercel
+- Next.js API rewrites in `next.config.ts` for seamless backend proxying
 
 ### Changed
-- Refactored /api/analyze.ts with structured error handling
-- Updated lint:fix script to auto-fix both ESLint and Prettier issues
-- Gemini API integration updated to use gemini-2.0-flash model
-- Form submission logic moved to useGenerateReport hook
-- Theme context now uses useState initializer for localStorage
+- Centralized API base URL logic in `src/utils/api.ts`
+- Refactored `useReport` and `geminiModelsApi` to use the new centralized configuration
+- Updated `README.md` and documentation with new environment variables (`API_BASE_URL`)
 
 ### Fixed
-- setResumeFile reference error in UploadForm component
-- ToastContext dependency ordering issue
-- ThemeContext setState in effect warning
-- ESLint module not found error
-- API key fallback logic for Gemini API
+- Hardcoded `localhost:3001` URLs in production environment
+- Missing TSOA route registration in `api/src/server.ts` causing 404 errors
+- Next.js missing dependency warnings in `useReport` hook
+- Unused `useContext` import in `AppContext.tsx`
 
 ### Security
 - API key fallback implementation with environment variables

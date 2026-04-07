@@ -169,16 +169,17 @@ This section explains all environment variables used in the talent-matcher appli
 #### Frontend - Public Variables
 These variables are accessible in the browser and frontend code.
 
-##### NEXT_PUBLIC_API_BASE_URL
-- **Type**: String (URL)
-- **Required**: Yes
-- **Visibility**: Public
-- **Usage**: Frontend fetch base URL for the backend API
-- **Where to Set**:
-  - Local: `.env.local`
-  - CI/CD: GitHub Secrets or build environment
-  - Production: Vercel Secrets or environment variables
+- **Usage**: Frontend fetch base URL. Defaults to `/api` in production (proxied).
 - **Example**: `http://localhost:3001/api`
+- **Default**: `/api` (production) or `http://localhost:3001/api` (development)
+
+##### API_BASE_URL
+- **Type**: String (URL)
+- **Required**: No
+- **Visibility**: Backend/Server-only
+- **Usage**: Destination for Next.js API rewrites (proxy).
+- **Example**: `https://your-backend.herokuapp.com`
+- **Default**: `http://localhost:3001`
 
 ##### NEXT_PUBLIC_ENVIRONMENT
 - **Type**: String
@@ -453,7 +454,8 @@ Error: Cannot read property 'xxx' of undefined
 
 | Variable | Type | Public | Required | Local | GitHub Secrets | Vercel |
 |----------|------|--------|----------|-------|----------------|--------|
-| NEXT_PUBLIC_API_BASE_URL | URL | Yes | Yes | ✅ | ✅ | ✅ |
+| NEXT_PUBLIC_API_BASE_URL | URL | Yes | No | ✅ | ✅ | ✅ |
+| API_BASE_URL | URL | No | No | ✅ | ✅ | ✅ |
 | GEMINI_API_KEY | API Key | No | Yes | ✅ | ✅ | ✅ |
 | GEMINI_API_KEY_ALT | API Key | No | No | ✅ | ✅ | ✅ |
 | VERCEL_TOKEN | Token | No | Yes* | ❌ | ✅ | ❌ |

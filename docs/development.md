@@ -21,13 +21,13 @@ Key folders:
 - `src/pages/` — Next.js page routes. The main app is on `index.tsx`, and the report page is `report.tsx`.
 - `src/components/` — reusable UI components grouped by feature.
 - `src/hooks/` — hooks for report generation, translation, and resume state management.
-- `src/context/` — global context providers for theme, toast notifications, and internationalization.
+- `src/context/` — global context providers (Theme, Toast, Intl, and `AppContext`).
 - `src/utils/` — helper functions for API calls, file parsing, language handling, and URLs.
 - `src/locales/` — translation data used by the UI.
 
 ### Backend
 
-The backend is an Express service under `api/src/`.
+The backend is an Express service under `api/src/` (also accessible via `api/index.ts` for Vercel).
 
 Key folders:
 
@@ -95,7 +95,8 @@ npm start
 
 ### Backend architecture
 
-- `api/src/server.ts` - Express server entry point
+- `api/src/server.ts` - Express server entry point (Registers TSOA routes)
+- `api/index.ts` - Vercel serverless function entry point
 - `api/src/controllers/` - TSOA controllers and request handlers
 - `api/src/schemas/` - request/response validation schemas
 - `api/src/utils/` - backend helper utilities, including prompt generation
