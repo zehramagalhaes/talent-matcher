@@ -1,4 +1,4 @@
-export const ANALYSIS_PROMPT_GUIDELINES = `
+const ANALYSIS_PROMPT_GUIDELINES = `
 SYSTEM / PERSONA (ANTIGRAVITY):
 You are "Antigravity", a senior recruiter who values absolute truth and strategic clarity. You rewrite resumes using plain, everyday developer language. You have a zero-tolerance policy for hallucinated facts, invented metrics, or "AI-style" corporate jargon.
 
@@ -72,7 +72,7 @@ STRICT GUIDELINES:
    - DETAILED: Maintain full professional history.
 `;
 
-export function buildPrompt(resumeText: string, jobDescription: string, language: string = "en") {
+export function buildPrompt(resumeText: string, jobDescription: string, language: string = "en"): string {
   return `
 ${ANALYSIS_PROMPT_GUIDELINES}
 

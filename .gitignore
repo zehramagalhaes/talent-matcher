@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# generated code
+/api/generated
+
 # production
 /build
 

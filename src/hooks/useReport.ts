@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import axios from "axios";
 import { useRouter } from "next/router";
 import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { useToast } from "@/context/ToastContext";
@@ -33,14 +32,26 @@ export const useReport = (autoHydrate = false) => {
       }
 
       try {
-        const response = await axios.post("/api/analyze", {
-          resumeText: finalResume,
-          jobDescription: finalJob,
-          language: locale,
-          model,
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api";
+        const response = await fetch(`${baseUrl}/analyze`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resumeText: finalResume,
+            jobDescription: finalJob,
+            language: locale,
+            selectedModel: model,
+          }),
         });
 
-        const result: AnalyzeReportResult = response.data;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}`);
+        }
+
+        const result: AnalyzeReportResult = await response.json();
 
         // Persist everything
         localStorage.setItem("analysisResult", JSON.stringify(result));
@@ -50,9 +61,7 @@ export const useReport = (autoHydrate = false) => {
         setReport(result);
         return { success: true, data: result };
       } catch (err) {
-        const errorMessage = axios.isAxiosError(err)
-          ? err.response?.data?.message || err.message
-          : "Unknown error";
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
 
         setError(errorMessage);
         addToast(t("report.error.prefix").replace("{message}", errorMessage), "error");
