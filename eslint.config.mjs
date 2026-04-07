@@ -37,7 +37,7 @@ export default ts.config(
         { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "no-console": "off",
+      "no-console": ["warn", { "allow": ["warn", "error"] }],
     },
     settings: {
       react: {

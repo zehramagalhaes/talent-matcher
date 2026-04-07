@@ -20,7 +20,7 @@ export const AppIntlProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <IntlContext.Provider value={{ locale, setLocale }}>
-      <TypedIntlProvider locale={locale} messages={currentMessages} defaultLocale="en">
+      <TypedIntlProvider key={locale} locale={locale} messages={currentMessages} defaultLocale="en">
         {children}
       </TypedIntlProvider>
     </IntlContext.Provider>
