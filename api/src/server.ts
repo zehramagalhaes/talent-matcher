@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
+import { RegisterRoutes } from '../generated/routes';
 
 // Load environment variables
 const rootEnvPath = path.resolve(__dirname, '../../.env.local');
@@ -20,6 +21,7 @@ const enableApiDocs = process.env.NODE_ENV === 'development' && process.env.API_
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+RegisterRoutes(app);
 
 if (enableApiDocs) {
   const swaggerFile = fs.readFileSync(path.join(__dirname, '../generated/swagger.json'), 'utf-8');

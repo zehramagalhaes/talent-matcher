@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+  async rewrites() {
+    // Falls back to http://localhost:3001 if API_BASE_URL is not set
+    const destination = process.env.API_BASE_URL || "http://localhost:3001";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${destination}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
