@@ -37,7 +37,6 @@ These variables are accessible in the browser and frontend code.
   2. Sign in with Google account
   3. Click "Get API Key" → "Create API key in new Google Cloud project"
   4. Copy the API key
-- **Example**: `AIzaSyBDsdkg5BaXO0lMBVJuBg7iaU7YBVy4pE4`
 
 #### NEXT_PUBLIC_ENVIRONMENT
 - **Type**: String
