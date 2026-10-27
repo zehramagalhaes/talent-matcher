@@ -23,10 +23,11 @@ Run `npm run docs:check` to verify required knowledge-base files, local Markdown
 
 - [README](../README.md) — product summary and local setup.
 - [Environment variables](../ENV_VARS.md) — credential names and setup guidance; do not put values in docs.
+- [Vercel deployment](../DEPLOYMENT.md) — current project setup, Git integration and CLI deployment steps.
 - [Security and privacy](../SECURITY_AND_PRIVACY.md) — request limits, retention, and deployment notes.
 - [Linting setup](../LINTING_SETUP.md) — existing linting and formatting guidance; validate claims against `package.json` and CI.
 - [Changelog](../CHANGELOG.md) — retained legacy release history. Its older entries are not treated as proof of current implementation.
-- [CI workflow](../.github/workflows/deploy.yml) — actual automated checks and deployment-related validation.
+- [CI workflow](../.github/workflows/deploy.yml) — repository validation/build only; it does not deploy to Vercel.
 
 ## Status vocabulary
 

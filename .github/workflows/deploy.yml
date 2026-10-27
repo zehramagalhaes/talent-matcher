@@ -36,10 +36,6 @@ jobs:
 
       - name: 🛠️ Build Check
         run: npm run build
-        env:
-          # Server-side only — no NEXT_PUBLIC_ prefix to avoid browser exposure
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_API_KEY_ALT: ${{ secrets.GEMINI_API_KEY_ALT }}
 
   # 2. Final check for merge conflicts (PRs only)
   check-conflicts:
@@ -63,7 +59,7 @@ jobs:
             echo "✅ No conflicts."
           fi
 
-  # 3. Status signal that Vercel looks for
+  # 3. Final PR readiness status
   pr-ready:
     name: 🏁 PR Readiness Signal
     runs-on: ubuntu-latest
@@ -71,4 +67,4 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: ✅ Approval
-        run: echo "Code is validated. Vercel is free to deploy upon merge."
+        run: echo "Repository validation and conflict checks passed."

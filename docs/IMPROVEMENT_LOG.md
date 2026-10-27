@@ -65,3 +65,19 @@ Entries are in known sequence, not dated. The repository does not preserve relia
 - **Known limitations:** The validator cannot detect omitted documentation updates based on changed source files or verify the truth of technical prose.
 - **Follow-up:** Complete the documented manual impact checklist for each meaningful source change; the validator cannot infer documentation omissions.
 - **Related documentation/decisions:** [Documentation index](README.md), [AI workflow](AI_WORKFLOW.md), [decision D-006](DECISIONS.md#d-006--validate-repository-knowledge-with-a-small-node-script-and-manual-impact-review).
+
+## Vercel deployment guidance and CI boundary
+
+- **Status:** Implemented and verified
+- **Date:** 2026-10-27 (current task date; commit date not asserted)
+- **Problem:** Existing setup docs required Vercel secrets in GitHub Actions and described a GitHub workflow that did not actually deploy. The key fallback description also implied automatic retry not implemented in code.
+- **Expected outcome:** Give maintainers Vercel setup steps that match this Next.js app and distinguish platform deployment from repository CI.
+- **Implementation summary:** Added a Vercel deployment guide, corrected environment and key-setup docs, clarified README and security guidance, and removed unused Gemini credentials from the CI build job.
+- **Affected features/components:** Deployment documentation and CI build configuration; application runtime behavior is unchanged.
+- **Files/modules:** `DEPLOYMENT.md`, `SETUP_API_KEYS.md`, `ENV_VARS.md`, `LINTING_SETUP.md`, `README.md`, `SECURITY_AND_PRIVACY.md`, `docs/`, `.github/workflows/deploy.yml`.
+- **Decisions and trade-offs:** Recommend Vercel Git integration for automatic branch deployments and document CLI as a manual option. Do not add a separate GitHub Actions deployment pipeline or Vercel tokens without an explicit need.
+- **Verification:** `npm run docs:check`; `npx prettier --check 'docs/**/*.md' AGENTS.md README.md LINTING_SETUP.md ENV_VARS.md SETUP_API_KEYS.md SECURITY_AND_PRIVACY.md DEPLOYMENT.md package.json .github/workflows/deploy.yml scripts/validate-docs.mjs`; `npm run build`.
+- **Actual results:** Documentation validation passed for 18 Markdown files and 5 improvement records. Prettier reported all matched files formatted. The production build succeeded and emitted both API routes as dynamic endpoints.
+- **Known limitations:** Vercel dashboard settings and deployed runtime are not accessible from this repository; the guide cannot confirm an existing project link or account plan.
+- **Follow-up:** Verify the actual Vercel project's root directory, Production Branch, secret scopes, Node version, and 60-second function allowance in the dashboard.
+- **Related documentation/decisions:** [Deployment guide](../DEPLOYMENT.md), [architecture](ARCHITECTURE.md), [decision D-007](DECISIONS.md#d-007--keep-vercel-deployment-separate-from-github-actions-validation).

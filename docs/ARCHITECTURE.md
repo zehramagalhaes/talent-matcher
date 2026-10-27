@@ -6,6 +6,7 @@
 - Material UI for interface components; React Intl and `src/locales/translations.ts` for user-facing English and Portuguese translations.
 - npm scripts and lockfile for dependency management.
 - Vercel-compatible Next.js deployment. The repository has no `vercel.json`; Next.js produces server functions for the API routes.
+- Deployment instructions and verified repository/CI boundaries are maintained in [DEPLOYMENT.md](../DEPLOYMENT.md).
 - Gemini integration uses `@google/generative-ai` from server-side code. Zod validates request, source, and response data.
 
 The actual dependency versions and commands are in [package.json](../package.json); framework configuration is in [next.config.ts](../next.config.ts).

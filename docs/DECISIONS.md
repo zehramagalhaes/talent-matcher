@@ -5,7 +5,7 @@ This is the record of decisions supported by current code and the available task
 ## D-001 — Keep the Next.js Pages Router and Vercel runtime
 
 - **Status:** Implemented and verified.
-- **Decision:** Use `src/pages/api/*` for privileged APIs and deploy through the existing Next.js/Vercel workflow.
+- **Decision:** Use native `src/pages/api/*` routes with Vercel's Next.js runtime; keep privileged calls inside these server routes.
 - **Rationale:** The app already uses Next.js Pages Router and Vercel. Native routes satisfy server-side Gemini calls without a separate service.
 - **Trade-offs:** Serverless instances are ephemeral; in-memory state cannot enforce global quotas.
 - **Evidence:** `src/pages/api/analyze.ts`, `src/pages/api/models.ts`, CI workflow, and successful production build.
@@ -50,3 +50,11 @@ This is the record of decisions supported by current code and the available task
 - **Rationale:** These structural checks are reliable and useful; deciding whether a source change makes prose stale cannot be inferred reliably from file changes alone.
 - **Trade-offs:** The script cannot guarantee that every meaningful implementation change updated the right documentation. Agents must complete the checklist in `docs/AI_WORKFLOW.md`.
 - **Evidence:** `scripts/validate-docs.mjs`, `package.json`, `.github/workflows/deploy.yml`, and the documentation impact checklist.
+
+## D-007 — Keep Vercel deployment separate from GitHub Actions validation
+
+- **Status:** Implemented and verified.
+- **Decision:** Document Vercel's native Next.js/Git integration as the recommended path and the Vercel CLI as a manual alternative. Keep the repository's GitHub Actions workflow limited to validation and build checks; do not add Vercel deployment tokens or Gemini keys to the current CI job.
+- **Rationale:** The app is a standard Next.js Pages Router project with no `vercel.json`, and the current workflow does not invoke a deployment tool. Vercel can detect the framework and use the package build script.
+- **Trade-offs:** Vercel account-side repository connection, production branch, environment scopes, domain, and plan settings are not version-controlled or verifiable from this repository.
+- **Evidence:** `package.json`, `.github/workflows/deploy.yml`, `src/pages/api/analyze.ts`, and [DEPLOYMENT.md](../DEPLOYMENT.md).

@@ -42,11 +42,11 @@ function markdownFiles(directory) {
 }
 
 const docsFiles = markdownFiles(path.join(root, "docs"));
-const checkedMarkdown = [
-  path.join(root, "AGENTS.md"),
-  path.join(root, "README.md"),
-  ...docsFiles,
-].filter(fs.existsSync);
+const rootMarkdown = fs
+  .readdirSync(root, { withFileTypes: true })
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+  .map((entry) => path.join(root, entry.name));
+const checkedMarkdown = [...rootMarkdown, ...docsFiles].filter(fs.existsSync);
 
 for (const absolute of checkedMarkdown) {
   const source = fs.readFileSync(absolute, "utf8");
@@ -113,7 +113,9 @@ for (let index = 0; index < records.length; index += 1) {
 }
 
 const statusBearingFiles = checkedMarkdown.filter(
-  (file) => !file.includes(`${path.sep}templates${path.sep}`)
+  (file) =>
+    file.startsWith(`${path.join(root, "docs")}${path.sep}`) &&
+    !file.includes(`${path.sep}templates${path.sep}`)
 );
 for (const absolute of statusBearingFiles) {
   const source = fs.readFileSync(absolute, "utf8");

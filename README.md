@@ -31,7 +31,7 @@ The application includes a report/edit flow and client-side PDF and DOCX downloa
 - **AI Integration**: Google Gemini API through server-side Next.js API routes
 - **Form Validation**: react-hook-form + Zod
 - **Code Quality**: ESLint, Prettier, Husky
-- **Deployment**: Vercel-compatible Next.js deployment; GitHub Actions validates changes
+- **Deployment**: Vercel Next.js deployment; GitHub Actions validates changes but does not deploy
 
 ---
 
@@ -81,6 +81,7 @@ The maintained project knowledge base is indexed in [docs/README.md](./docs/READ
 
 - [**SETUP_API_KEYS.md**](./SETUP_API_KEYS.md) - Step-by-step API key configuration guide
 - [**ENV_VARS.md**](./ENV_VARS.md) - Complete environment variables reference
+- [**DEPLOYMENT.md**](./DEPLOYMENT.md) - Vercel project setup, Git-based deployment, CLI option, and checks
 - [**.env.example**](./.env.example) - Environment variables template
 
 ### Development
@@ -116,7 +117,8 @@ The current CI checks are defined in [.github/workflows/deploy.yml](./.github/wo
 ### API Keys Management
 
 - Never commit `.env.local` or any `.env.*` files
-- Use GitHub Secrets for CI/CD pipelines
+- Use Vercel project environment settings for Gemini API keys
+- The current GitHub Actions checks do not require Gemini or Vercel secrets
 - Rotate API keys quarterly
 - Different keys for dev, staging, and production
 

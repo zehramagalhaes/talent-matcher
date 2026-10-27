@@ -1,179 +1,40 @@
-# Environment Variables & Secrets Management
+# Environment variables and secrets
 
-This document explains all environment variables used in the talent-matcher application and how to configure them properly.
+## Application runtime variables
 
-## Quick Start
+The Next.js API routes read Gemini credentials on the server. Keep these values out of `NEXT_PUBLIC_*` variables, browser code, logs, and committed files.
 
-1. **For Local Development**
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your API keys
-   ```
+| Name                 | Required                                  | Used by                                               | Behavior                                                                                                                                    |
+| -------------------- | ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GEMINI_API_KEY`     | Yes for live analysis and model discovery | `src/pages/api/analyze.ts`, `src/pages/api/models.ts` | Primary Gemini API key. Configure it in `.env.local` for local development and in Vercel's Production/Preview environments for deployments. |
+| `GEMINI_API_KEY_ALT` | Optional                                  | Same API routes                                       | Used only when `GEMINI_API_KEY` is unset. It is not an automatic retry/failover key if the primary key returns an error.                    |
 
-2. **For GitHub Actions/CI-CD**
-   - Set secrets in GitHub repository settings (Settings → Secrets and variables → Actions)
+The current GitHub Actions workflow runs validation/build only and does not need Gemini credentials or Vercel deployment credentials. No `VERCEL_TOKEN`, `VERCEL_ORG_ID`, or `VERCEL_PROJECT_ID` values are required by that workflow.
 
-3. **For Vercel Deployment**
-   - Set environment variables directly in Vercel project settings (Settings → Environment Variables)
+## Local development
 
----
+1. Copy `.env.example` to `.env.local`.
+2. Set `GEMINI_API_KEY` in `.env.local`; set the optional alternate only if needed.
+3. Run `npm run dev`.
 
-## ⚠️ Security Notice: NEVER use `NEXT_PUBLIC_` for API keys
+`.env*` files are ignored by Git. Never paste secret values into docs, issue reports, shell commands that may enter command history, or client-side environment variables.
 
-Variables prefixed with `NEXT_PUBLIC_` are **embedded in the browser JavaScript bundle** at build time. Anyone who opens DevTools on your deployed site can read them.
+## Vercel environments
 
-The Gemini API key is used exclusively in server-side API Routes (`/pages/api/*`). It **never needs to be exposed to the browser**. Always use `GEMINI_API_KEY` (no prefix).
+Set `GEMINI_API_KEY` as a Secret in the Vercel project settings for Production and Preview. Use a separate test key for Preview when appropriate. Set `GEMINI_API_KEY_ALT` only when necessary; the implementation uses it only if the primary variable is absent.
 
----
+Environment changes apply to new deployments, so redeploy after changing a variable. Local development can use `.env.local`; optionally use `vercel env pull .env.local` for the linked project's Development environment. Keep the generated file out of version control.
 
-## Environment Variables Reference
-
-### Server-Side (Secret) Variables
-These variables are only accessible in API Routes (`/pages/api/*`) and server-side code. They are never sent to the browser.
-
-#### `GEMINI_API_KEY`
-- **Type**: String (API Key)
-- **Required**: Yes
-- **Visibility**: Server-only — never exposed to the browser
-- **Usage**: Google Generative AI API for resume analysis, called from `/pages/api/analyze.ts`
-- **Where to Set**:
-  - Local: `.env.local`
-  - CI/CD: GitHub Secrets
-  - Production: Vercel Project Settings → Environment Variables
-- **How to Get**:
-  1. Go to [https://aistudio.google.com](https://aistudio.google.com)
-  2. Click **"Get API Key"**
-  3. Create or select a project
-  4. Copy the API key
-
-#### `GEMINI_API_KEY_ALT`
-- **Type**: String (API Key)
-- **Required**: No (optional fallback)
-- **Visibility**: Server-only
-- **Usage**: Fallback Gemini API key if the primary is rate-limited or unavailable
-- **Where to Set**: Same as `GEMINI_API_KEY`
-
-### Deployment — CI/CD Only
-These are used by GitHub Actions. Never set them in `.env` files.
-
-#### `VERCEL_TOKEN`
-- **Type**: Authentication Token
-- **Required**: Yes (for automated Vercel deployment via GitHub Actions)
-- **Visibility**: Secret — never expose
-- **Where to Set**: GitHub Secrets only
-
-#### `VERCEL_ORG_ID`
-- **Type**: String (Organization ID)
-- **Required**: Yes (for automated deployment)
-- **Where to Set**: GitHub Secrets
-
-#### `VERCEL_PROJECT_ID`
-- **Type**: String (Project ID)
-- **Required**: Yes (for automated deployment)
-- **Where to Set**: GitHub Secrets
-
----
-
-## Setting Up Each Environment
-
-### Local Development
-
-```bash
-# 1. Copy example file
-cp .env.example .env.local
-
-# 2. Edit .env.local — add your key WITHOUT NEXT_PUBLIC_ prefix
-# GEMINI_API_KEY=AIzaSy...
-
-# 3. Start development server
-npm run dev
-```
-
-**File**: `.env.local`
-**Gitignore**: Yes (never commit)
-
-### GitHub Actions (CI/CD)
-
-Add these repository secrets (Settings → Secrets and variables → Actions):
-- `GEMINI_API_KEY`
-- `GEMINI_API_KEY_ALT` (optional)
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-
-### Vercel Production
-
-1. Go to Vercel project → **Settings** → **Environment Variables**
-2. Add `GEMINI_API_KEY` (and optionally `GEMINI_API_KEY_ALT`)
-3. Select scopes: **Production**, **Preview**, **Development**
-4. Click **Save** and redeploy
-
----
-
-## Secure Practices
-
-### ✅ DO
-
-- ✅ Use `.env.local` for local development — it is git-ignored by default
-- ✅ Use GitHub Secrets for CI/CD
-- ✅ Use Vercel Environment Variables for production
-- ✅ Rotate API keys quarterly
-- ✅ Use different keys per environment when possible
-- ✅ Monitor API key usage in [Google Cloud Console](https://console.cloud.google.com)
-
-### ❌ DON'T
-
-- ❌ Use `NEXT_PUBLIC_GEMINI_API_KEY` — this exposes the key in the browser bundle
-- ❌ Commit `.env.local` or any `.env` file with real values
-- ❌ Share API keys in Slack, Discord, emails, or GitHub Issues
-- ❌ Log or print API keys to console
-- ❌ Store secrets in code comments
-
----
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full Vercel setup and deployment flow. For automation through a separately created custom GitHub Actions workflow, configure Vercel CLI credentials only if that new workflow actually invokes the CLI; this repository's workflow does not.
 
 ## Troubleshooting
 
-### Error: "API Key not configured"
+- **Analysis service not configured:** confirm `GEMINI_API_KEY` exists in the environment used by the current deployment and redeploy.
+- **Model discovery unavailable:** confirm the key is available in Vercel's runtime environment and inspect the deployment's function error logs without logging request contents.
+- **A changed key is not active:** create a new deployment; existing deployments do not receive updated environment values.
 
-**Checklist**:
-1. Is `GEMINI_API_KEY` set in `.env.local`? (local dev)
-2. Is `GEMINI_API_KEY` in Vercel Environment Variables? (production)
-3. Did you restart the dev server after adding the variable?
-4. Is the key valid? Test at [aistudio.google.com](https://aistudio.google.com)
-5. Is the key rate-limited? Add `GEMINI_API_KEY_ALT` as fallback
+## Further reading
 
-**Fix for local development**:
-```bash
-echo "GEMINI_API_KEY=your_actual_key" >> .env.local
-npm run dev
-```
-
-### Error: "Vercel deployment failed"
-
-**Checklist**:
-1. Are `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` set in GitHub Secrets?
-2. Has the token expired? Rotate it at [vercel.com/account/tokens](https://vercel.com/account/tokens)
-3. Are the IDs correct?
-
----
-
-## Quick Reference Table
-
-| Variable              | Type    | Server-only | Required | Local | GitHub Secrets | Vercel |
-|-----------------------|---------|-------------|----------|-------|----------------|--------|
-| `GEMINI_API_KEY`      | API Key | ✅ Yes      | Yes      | ✅    | ✅             | ✅     |
-| `GEMINI_API_KEY_ALT`  | API Key | ✅ Yes      | No       | ✅    | ✅             | ✅     |
-| `VERCEL_TOKEN`        | Token   | ✅ Yes      | Yes*     | ❌    | ✅             | ❌     |
-| `VERCEL_ORG_ID`       | ID      | ✅ Yes      | Yes*     | ❌    | ✅             | ❌     |
-| `VERCEL_PROJECT_ID`   | ID      | ✅ Yes      | Yes*     | ❌    | ✅             | ❌     |
-
-*Only required for GitHub Actions deployment to Vercel
-
----
-
-## Resources
-
-- [Google AI Studio](https://aistudio.google.com)
-- [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables)
-- [Next.js Environment Variables](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables)
-- [GitHub Secrets Documentation](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+- [Vercel environment variables](https://vercel.com/docs/environment-variables)
+- [Vercel environment management CLI](https://vercel.com/docs/cli/env)
+- [Next.js environment variables](https://nextjs.org/docs/pages/guides/environment-variables)

@@ -28,6 +28,7 @@ Status reflects source inspection and the checks recorded in the latest implemen
 - Resume/job text is sent to Gemini during analysis; browser session storage is accessible to scripts/extensions running in the page context and is not encrypted.
 - Existing top-level setup documents and changelog contain older or potentially stale claims. The docs index identifies the current authoritative documents; source code remains the behavior authority.
 - `npm run docs:check` validates required knowledge-base files, local Markdown links, improvement-record fields/status vocabulary, and root agent references. Whether a specific source change required a doc update remains a manual review.
+- Vercel deployment steps are documented in `DEPLOYMENT.md`. The repository's GitHub Actions workflow validates and builds but does not deploy; the account's Git connection, production branch, domains, environment settings, and plan are not verifiable from this codebase.
 
 ## Next priorities
 

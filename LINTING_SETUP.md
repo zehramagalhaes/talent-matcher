@@ -55,25 +55,9 @@ npm run format:check  # Check without changes
 - 1x React Hook Form compatibility (library limitation, not a bug)
 - Rest are TypeScript `any` types in API error handlers
 
-## Git Setup for Vercel Deployment
+## Vercel deployment and CI
 
-### Required GitHub Secrets
-
-Set these in your repository settings (Settings → Secrets and variables → Actions):
-
-```
-VERCEL_TOKEN          - Your Vercel API token
-VERCEL_ORG_ID         - Your Vercel organization ID
-VERCEL_PROJECT_ID     - Your Vercel project ID
-GEMINI_API_KEY        - Your Gemini API key (server-side only — no NEXT_PUBLIC_ prefix)
-GEMINI_API_KEY_ALT    - Optional fallback Gemini API key
-```
-
-### GitHub Actions Workflow
-
-- File: `.github/workflows/deploy.yml`
-- Triggers on: push to `main` and `develop` branches
-- Runs ESLint, Prettier check, builds, and deploys to Vercel
+Follow [DEPLOYMENT.md](./DEPLOYMENT.md) for the current Vercel setup. The repository workflow at `.github/workflows/deploy.yml` runs documentation validation, lint and format checks, type checking, tests, conflict checks for pull requests, and a Next.js production build. It does not deploy to Vercel and does not require GitHub secrets. Vercel Git integration or the Vercel CLI handles deployment separately.
 
 ## Usage
 
@@ -101,18 +85,13 @@ npm run format
 
 ## Next Steps
 
-1. **Connect to Vercel** (if not already done):
-   - Push to GitHub
-   - Link repository to Vercel project
-   - Add the required GitHub secrets
+1. **Deploy to Vercel:** Follow [DEPLOYMENT.md](./DEPLOYMENT.md) and verify the project settings and environment scopes.
 
 2. **Customize Rules** (optional):
    - Modify `.eslintrc.mjs` for stricter/looser rules
    - Adjust `.prettierrc.json` for formatting preferences
 
-3. **Team Agreement**:
-   - Ensure team members run `npm install` to get Husky hooks
-   - Share rule expectations with team
+3. **Team Agreement:** Use the current commands in `package.json` and CI rather than assuming historical status notes in this file are current.
 
 ## Troubleshooting
 
