@@ -5,6 +5,7 @@ import { AnalyzeReportResult } from "@/api/analyze/schema";
 import { analyzeResume } from "@/api/analyze/analyzeApi";
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { getSessionData, removeSessionData, setSessionData } from "@/utils/sessionData";
 
 export const useReport = (autoHydrate = false) => {
   const router = useRouter();
@@ -23,8 +24,8 @@ export const useReport = (autoHydrate = false) => {
       setError(null);
 
       // Cenário: re-fetch / hidratação usando dados armazenados se os args estiverem ausentes
-      const finalResume = resumeText || localStorage.getItem("resumeText");
-      const finalJob = jobDescription || localStorage.getItem("jobText");
+      const finalResume = resumeText || getSessionData("resumeText");
+      const finalJob = jobDescription || getSessionData("jobText");
 
       if (!finalResume || !finalJob) {
         const msg = t("report.error.missing_data");
@@ -42,9 +43,9 @@ export const useReport = (autoHydrate = false) => {
         });
 
         // Persiste os dados de entrada e o resultado
-        localStorage.setItem("analysisResult", JSON.stringify(result));
-        localStorage.setItem("resumeText", finalResume);
-        localStorage.setItem("jobText", finalJob);
+        setSessionData("analysisResult", JSON.stringify(result));
+        setSessionData("resumeText", finalResume);
+        setSessionData("jobText", finalJob);
 
         setReport(result);
         return { success: true, data: result };
@@ -76,13 +77,13 @@ export const useReport = (autoHydrate = false) => {
   useEffect(() => {
     if (autoHydrate && isInitialMount.current && router.isReady) {
       isInitialMount.current = false;
-      const cached = localStorage.getItem("analysisResult");
+      const cached = getSessionData("analysisResult");
 
       if (cached) {
         try {
           setReport(JSON.parse(cached));
         } catch {
-          localStorage.removeItem("analysisResult");
+          removeSessionData("analysisResult");
           generateReport(); // Tenta regenerar se o cache estiver corrompido
         }
       } else {

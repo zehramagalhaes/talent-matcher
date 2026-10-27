@@ -2,6 +2,7 @@ import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import { ResumeSourceSchema, type ResumeSource } from "../api/resume/sourceSchema.ts";
 
 const SUPPORTED_EXTENSIONS = new Set(["pdf", "docx", "txt"]);
+export const MAX_RESUME_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 const SECTION_PATTERNS: Array<[ResumeSource["sections"][number]["type"], RegExp]> = [
   [
@@ -139,12 +140,22 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
   if (!SUPPORTED_EXTENSIONS.has(ext)) {
     throw new Error("Unsupported file type. Please upload a PDF, DOCX, or TXT file.");
   }
+  if (file.size === 0) throw new Error("No readable text was found in this file.");
+  if (file.size > MAX_RESUME_FILE_SIZE_BYTES) {
+    throw new Error("Resume file is too large. Please upload a file under 5 MB.");
+  }
 
   try {
     let text: string;
     if (ext === "pdf") {
+      const header = new TextDecoder().decode(await file.slice(0, 1024).arrayBuffer());
+      if (!header.includes("%PDF-")) throw new Error("The PDF file signature is invalid.");
       text = await extractPdfText(file);
     } else if (ext === "docx") {
+      const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+        throw new Error("The DOCX file signature is invalid.");
+      }
       const mammoth = await import("mammoth");
       const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
       text = result.value;
@@ -152,6 +163,8 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
         throw new Error("The DOCX document contains unreadable content.");
       }
     } else {
+      const bytes = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+      if (bytes.includes(0)) throw new Error("The text file contains binary data.");
       text = await file.text();
     }
 
@@ -161,7 +174,9 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
   } catch (error) {
     if (
       error instanceof Error &&
-      /Unsupported file type|No readable text|unreadable content/.test(error.message)
+      /Unsupported file type|No readable text|unreadable content|too large|signature is invalid|binary data/.test(
+        error.message
+      )
     ) {
       throw error;
     }

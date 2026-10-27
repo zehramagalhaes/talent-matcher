@@ -9,18 +9,19 @@ import { classifyGeminiError, parseAnalysisResponse } from "@/api/analyze/respon
 import { GEMINI_ANALYSIS_RESPONSE_SCHEMA } from "@/api/analyze/geminiResponseSchema";
 import { buildPrompt, SYSTEM_INSTRUCTION } from "@/api/prompt";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
+import { AnalyzeRequestSchema, REQUEST_LIMITS } from "@/api/analyze/requestSchema";
+import { getClientRateLimitKey, isRateLimited } from "@/api/security/rateLimit";
+import { readJsonBody } from "@/api/security/readJsonBody";
 
 // ---------------------------------------------------------------------------
 // Limites de validação de entrada
 // ---------------------------------------------------------------------------
 const LIMITS = {
-  RESUME_MIN: 100, // caracteres mínimos para um currículo legível
-  RESUME_MAX: 30_000, // ~15 páginas densas de texto
-  JOB_MIN: 50, // caracteres mínimos para uma vaga válida
-  JOB_MAX: 10_000, // limite da descrição da vaga
   GEMINI_TIMEOUT_MS: 50_000,
-  SUPPORTED_LANGUAGES: ["en", "pt", "es", "fr", "de", "it"] as const,
 } as const;
+
+const MAX_REQUEST_BYTES = 256 * 1024;
+export const config = { api: { bodyParser: false }, maxDuration: 60 };
 
 // ---------------------------------------------------------------------------
 // Inicialização do cliente Gemini (server-side only)
@@ -42,50 +43,59 @@ function getGeminiClient(): GoogleGenerativeAI {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // 1. Método
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed", message: "Use POST for analysis." });
   }
 
-  // 2. Validação de entradas
-  const body = req.body && typeof req.body === "object" ? req.body : {};
-  const { resumeText, jobDescription, language, selectedModel } = body;
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return res.status(415).json({ error: "Unsupported media type", message: "Send a JSON request." });
+  }
 
-  if (typeof resumeText !== "string" || resumeText.trim().length < LIMITS.RESUME_MIN) {
+  const key = getClientRateLimitKey(req.headers, req.socket.remoteAddress || "unknown");
+  if (isRateLimited(`analyze:${key}`, 5, 15 * 60_000)) {
+    res.setHeader("Retry-After", "900");
+    return res.status(429).json({ error: "Rate limit exceeded", message: "Please try again later." });
+  }
+
+  const declaredLength = Number(req.headers["content-length"] || 0);
+  if (declaredLength > MAX_REQUEST_BYTES) {
+    return res.status(413).json({ error: "Request too large", message: "The request exceeds the allowed size." });
+  }
+  const requestBody = await readJsonBody(req, MAX_REQUEST_BYTES);
+  if (!requestBody.success) {
+    return res
+      .status(requestBody.status)
+      .json({
+        error: requestBody.status === 413 ? "Request too large" : "Invalid JSON",
+        message:
+          requestBody.status === 413
+            ? "The request exceeds the allowed size."
+            : "Send a valid JSON request.",
+      });
+  }
+
+  const parsedRequest = AnalyzeRequestSchema.safeParse(requestBody.data);
+  if (!parsedRequest.success) {
+    const resumeTooLarge =
+      typeof (requestBody.data as { resumeText?: unknown } | null)?.resumeText === "string" &&
+      ((requestBody.data as { resumeText: string }).resumeText.length > REQUEST_LIMITS.resumeMax);
+    const jobTooLarge =
+      typeof (requestBody.data as { jobDescription?: unknown } | null)?.jobDescription === "string" &&
+      ((requestBody.data as { jobDescription: string }).jobDescription.length > REQUEST_LIMITS.jobMax);
     return res.status(400).json({
-      error: "Invalid resume",
-      message: `Resume must be at least ${LIMITS.RESUME_MIN} characters of readable text.`,
+      error: resumeTooLarge || jobTooLarge ? "Input too large" : "Invalid request",
+      message: resumeTooLarge
+        ? `Resume must be at most ${REQUEST_LIMITS.resumeMax} characters.`
+        : jobTooLarge
+          ? `Job description must be at most ${REQUEST_LIMITS.jobMax} characters.`
+          : `Provide readable resume text (at least ${REQUEST_LIMITS.resumeMin} characters) and a job description (at least ${REQUEST_LIMITS.jobMin} characters).`,
     });
   }
 
-  if (resumeText.length > LIMITS.RESUME_MAX) {
-    return res.status(400).json({
-      error: "Resume too large",
-      message: `Resume must be under ${LIMITS.RESUME_MAX} characters. Please upload a shorter document.`,
-    });
-  }
-
-  if (typeof jobDescription !== "string" || jobDescription.trim().length < LIMITS.JOB_MIN) {
-    return res.status(400).json({
-      error: "Invalid job description",
-      message: `Job description must be at least ${LIMITS.JOB_MIN} characters.`,
-    });
-  }
-
-  if (jobDescription.length > LIMITS.JOB_MAX) {
-    return res.status(400).json({
-      error: "Job description too large",
-      message: `Job description must be under ${LIMITS.JOB_MAX} characters.`,
-    });
-  }
-
-  // Normalizar idioma — fallback seguro para "en"
-  const supportedLanguages = LIMITS.SUPPORTED_LANGUAGES as readonly string[];
-  const safeLanguage = supportedLanguages.includes(language) ? language : "en";
-
-  // Modelo: valida que é uma string simples (sem injeção de caracteres especiais)
-  const safeModel =
-    typeof selectedModel === "string" && /^[\w.-]+$/.test(selectedModel)
-      ? selectedModel
-      : DEFAULT_GEMINI_MODEL;
+  const { resumeText, jobDescription } = parsedRequest.data;
+  const safeLanguage = parsedRequest.data.language || "en";
+  const safeModel = parsedRequest.data.selectedModel || DEFAULT_GEMINI_MODEL;
 
   try {
     const genAI = getGeminiClient();

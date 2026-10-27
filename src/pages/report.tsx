@@ -15,6 +15,7 @@ import { NoReportState } from "@/components/feedbacks/NoReportState";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useRouter } from "next/router";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
+import { clearSensitiveSessionData } from "@/utils/sessionData";
 
 function ReportContent() {
   const { t } = useTranslation();
@@ -110,12 +111,7 @@ function ReportContent() {
           onClose={() => setOpenModal(false)}
           onRecover={() => router.push("/?edit=true")}
           onFresh={() => {
-            // Be careful with localStorage.clear() as it removes the API selection too
-            // Perhaps only remove the form data instead:
-            localStorage.removeItem("analysisResult");
-            localStorage.removeItem("resumeText");
-            localStorage.removeItem("resumeStructure");
-            localStorage.removeItem("jobText");
+            clearSensitiveSessionData();
             localStorage.removeItem("selectedModel");
             router.push("/");
           }}

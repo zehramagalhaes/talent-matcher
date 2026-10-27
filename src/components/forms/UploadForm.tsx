@@ -20,11 +20,12 @@ import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/router";
 import { extractTextFromFile, parseResumeText } from "@/utils/fileUtils";
 import { ResumeSourceSchema } from "@/api/resume/sourceSchema";
+import { getSessionData, removeSessionData, setSessionData } from "@/utils/sessionData";
 
 // Helper for clean state initialization
 const getInitialState = (key: string, isEditMode: boolean) => {
   if (typeof window !== "undefined" && isEditMode) {
-    return localStorage.getItem(key) || "";
+    return getSessionData(key) || "";
   }
   return "";
 };
@@ -74,9 +75,9 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
       setPreview(text);
       setResumeName(file.name);
 
-      localStorage.setItem("resumeText", text);
-      localStorage.setItem("resumeName", file.name);
-      localStorage.setItem("resumeStructure", JSON.stringify(structuredResume));
+      setSessionData("resumeText", text);
+      setSessionData("resumeName", file.name);
+      setSessionData("resumeStructure", JSON.stringify(structuredResume));
 
       onResumeUpload(file, text);
     } catch {
@@ -88,28 +89,28 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
 
   const handleJobChange = (val: string) => {
     setJobText(val);
-    localStorage.setItem("jobText", val);
+    setSessionData("jobText", val);
     onJobDescriptionChange(val);
   };
 
   const handleClearResume = () => {
     setResumeName("");
     setPreview("");
-    localStorage.removeItem("resumeName");
-    localStorage.removeItem("resumeText");
-    localStorage.removeItem("resumeStructure");
+    removeSessionData("resumeName");
+    removeSessionData("resumeText");
+    removeSessionData("resumeStructure");
     onResumeUpload(null, "");
   };
 
   useEffect(() => {
     if (!isEditMode) return;
-    const storedStructure = localStorage.getItem("resumeStructure");
+    const storedStructure = getSessionData("resumeStructure");
     if (!storedStructure) return;
     try {
       const parsed = ResumeSourceSchema.safeParse(JSON.parse(storedStructure));
-      if (!parsed.success) localStorage.removeItem("resumeStructure");
+      if (!parsed.success) removeSessionData("resumeStructure");
     } catch {
-      localStorage.removeItem("resumeStructure");
+      removeSessionData("resumeStructure");
     }
   }, [isEditMode]);
 

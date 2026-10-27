@@ -72,6 +72,7 @@ export const OptimizedResume: React.FC<{ resume: ResumeData }> = ({ resume }) =>
                 <Link
                   href={c.val!}
                   target="_blank"
+                  rel="noopener noreferrer"
                   color="primary"
                   sx={{
                     fontWeight: 600,
