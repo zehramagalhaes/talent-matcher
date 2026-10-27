@@ -49,40 +49,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const contentType = req.headers["content-type"] || "";
   if (!contentType.toLowerCase().includes("application/json")) {
-    return res.status(415).json({ error: "Unsupported media type", message: "Send a JSON request." });
+    return res
+      .status(415)
+      .json({ error: "Unsupported media type", message: "Send a JSON request." });
   }
 
   const key = getClientRateLimitKey(req.headers, req.socket.remoteAddress || "unknown");
   if (isRateLimited(`analyze:${key}`, 5, 15 * 60_000)) {
     res.setHeader("Retry-After", "900");
-    return res.status(429).json({ error: "Rate limit exceeded", message: "Please try again later." });
+    return res
+      .status(429)
+      .json({ error: "Rate limit exceeded", message: "Please try again later." });
   }
 
   const declaredLength = Number(req.headers["content-length"] || 0);
   if (declaredLength > MAX_REQUEST_BYTES) {
-    return res.status(413).json({ error: "Request too large", message: "The request exceeds the allowed size." });
+    return res
+      .status(413)
+      .json({ error: "Request too large", message: "The request exceeds the allowed size." });
   }
   const requestBody = await readJsonBody(req, MAX_REQUEST_BYTES);
   if (!requestBody.success) {
-    return res
-      .status(requestBody.status)
-      .json({
-        error: requestBody.status === 413 ? "Request too large" : "Invalid JSON",
-        message:
-          requestBody.status === 413
-            ? "The request exceeds the allowed size."
-            : "Send a valid JSON request.",
-      });
+    return res.status(requestBody.status).json({
+      error: requestBody.status === 413 ? "Request too large" : "Invalid JSON",
+      message:
+        requestBody.status === 413
+          ? "The request exceeds the allowed size."
+          : "Send a valid JSON request.",
+    });
   }
 
   const parsedRequest = AnalyzeRequestSchema.safeParse(requestBody.data);
   if (!parsedRequest.success) {
     const resumeTooLarge =
       typeof (requestBody.data as { resumeText?: unknown } | null)?.resumeText === "string" &&
-      ((requestBody.data as { resumeText: string }).resumeText.length > REQUEST_LIMITS.resumeMax);
+      (requestBody.data as { resumeText: string }).resumeText.length > REQUEST_LIMITS.resumeMax;
     const jobTooLarge =
-      typeof (requestBody.data as { jobDescription?: unknown } | null)?.jobDescription === "string" &&
-      ((requestBody.data as { jobDescription: string }).jobDescription.length > REQUEST_LIMITS.jobMax);
+      typeof (requestBody.data as { jobDescription?: unknown } | null)?.jobDescription ===
+        "string" &&
+      (requestBody.data as { jobDescription: string }).jobDescription.length >
+        REQUEST_LIMITS.jobMax;
     return res.status(400).json({
       error: resumeTooLarge || jobTooLarge ? "Input too large" : "Invalid request",
       message: resumeTooLarge

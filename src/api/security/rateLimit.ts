@@ -28,7 +28,10 @@ export function isRateLimited(
   return false;
 }
 
-export function getClientRateLimitKey(headers: Record<string, string | string[] | undefined>, fallback: string) {
+export function getClientRateLimitKey(
+  headers: Record<string, string | string[] | undefined>,
+  fallback: string
+) {
   const forwarded = headers["x-vercel-forwarded-for"] || headers["x-forwarded-for"];
   const address = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(",")[0]?.trim();
   return address || fallback || "unknown";

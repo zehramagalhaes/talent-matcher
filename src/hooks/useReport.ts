@@ -55,10 +55,7 @@ export const useReport = (autoHydrate = false) => {
 
         if (axios.isAxiosError(err)) {
           // Prefere a mensagem amigável do servidor, se disponível
-          errorMessage =
-            err.response?.data?.message ||
-            err.response?.data?.error ||
-            err.message;
+          errorMessage = err.response?.data?.message || err.response?.data?.error || err.message;
         } else if (err instanceof Error) {
           errorMessage = err.message;
         }
