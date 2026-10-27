@@ -1,8 +1,11 @@
 # ESLint, Prettier, and Husky Setup Complete ✓
 
+> Historical setup notes: the configuration and status summaries below may be stale. For current commands, inspect `package.json` and `.github/workflows/deploy.yml`; for current agent guidance, see [docs/README.md](./docs/README.md). In particular, do not treat the historical warning counts below as a current lint result.
+
 ## What's Been Configured
 
 ### 1. **ESLint** (.eslintrc.mjs)
+
 - Next.js core web vitals rules
 - TypeScript support
 - React hooks validation
@@ -15,6 +18,7 @@ npm run lint:fix  # Auto-fix linting errors
 ```
 
 ### 2. **Prettier** (.prettierrc.json)
+
 - 100 character line width
 - 2-space indentation
 - Single quotes disabled (use double quotes)
@@ -27,11 +31,13 @@ npm run format:check  # Check without changes
 ```
 
 ### 3. **Husky** (.husky/pre-commit)
+
 - Automatically runs before each commit
 - Executes `lint-staged` to check staged files
 - Prevents commits with linting errors
 
 ### 4. **Lint-staged** (package.json)
+
 - Runs ESLint on `.ts` and `.tsx` files
 - Runs Prettier on `.ts`, `.tsx`, `.json`, and `.md` files
 - Only checks staged files for performance
@@ -44,6 +50,7 @@ npm run format:check  # Check without changes
 ✓ **Git hooks** - Pre-commit hook ready
 
 ### Warnings Breakdown
+
 - 3x `Unexpected any` in error handling (acceptable for error types)
 - 1x React Hook Form compatibility (library limitation, not a bug)
 - Rest are TypeScript `any` types in API error handlers
@@ -51,6 +58,7 @@ npm run format:check  # Check without changes
 ## Git Setup for Vercel Deployment
 
 ### Required GitHub Secrets
+
 Set these in your repository settings (Settings → Secrets and variables → Actions):
 
 ```
@@ -62,6 +70,7 @@ GEMINI_API_KEY_ALT    - Optional fallback Gemini API key
 ```
 
 ### GitHub Actions Workflow
+
 - File: `.github/workflows/deploy.yml`
 - Triggers on: push to `main` and `develop` branches
 - Runs ESLint, Prettier check, builds, and deploys to Vercel
@@ -69,6 +78,7 @@ GEMINI_API_KEY_ALT    - Optional fallback Gemini API key
 ## Usage
 
 ### Before Committing
+
 ```bash
 # Manually run checks
 npm run lint
@@ -80,6 +90,7 @@ git commit -m "Your message"  # ← Husky runs lint-staged here
 ```
 
 ### Fixing Issues
+
 ```bash
 # Auto-fix linting issues
 npm run lint:fix
