@@ -36,8 +36,14 @@ test("preserves original resume text and groups recognizable sections without re
 });
 
 test("extracts text files without collapsing paragraph and bullet boundaries", async () => {
-  const file = new File(["WORK EXPERIENCE\n\n- Built an API\n- Maintained PostgreSQL"], "resume.txt");
-  assert.equal(await extractTextFromFile(file), "WORK EXPERIENCE\n\n- Built an API\n- Maintained PostgreSQL");
+  const file = new File(
+    ["WORK EXPERIENCE\n\n- Built an API\n- Maintained PostgreSQL"],
+    "resume.txt"
+  );
+  assert.equal(
+    await extractTextFromFile(file),
+    "WORK EXPERIENCE\n\n- Built an API\n- Maintained PostgreSQL"
+  );
 });
 
 test("rejects unsupported and empty documents with actionable errors", async () => {

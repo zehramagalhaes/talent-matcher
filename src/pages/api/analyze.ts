@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AnalyzeReportSchema } from "@/api/analyze/schema";
-import { buildPrompt } from "@/api/prompt";
+import {
+  GoogleGenerativeAI,
+  GoogleGenerativeAIAbortError,
+  GoogleGenerativeAIFetchError,
+  GoogleGenerativeAIResponseError,
+} from "@google/generative-ai";
+import { classifyGeminiError, parseAnalysisResponse } from "@/api/analyze/responseValidation";
+import { GEMINI_ANALYSIS_RESPONSE_SCHEMA } from "@/api/analyze/geminiResponseSchema";
+import { buildPrompt, SYSTEM_INSTRUCTION } from "@/api/prompt";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
 
 // ---------------------------------------------------------------------------
@@ -12,6 +18,7 @@ const LIMITS = {
   RESUME_MAX: 30_000, // ~15 páginas densas de texto
   JOB_MIN: 50, // caracteres mínimos para uma vaga válida
   JOB_MAX: 10_000, // limite da descrição da vaga
+  GEMINI_TIMEOUT_MS: 50_000,
   SUPPORTED_LANGUAGES: ["en", "pt", "es", "fr", "de", "it"] as const,
 } as const;
 
@@ -39,7 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // 2. Validação de entradas
-  const { resumeText, jobDescription, language, selectedModel } = req.body;
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const { resumeText, jobDescription, language, selectedModel } = body;
 
   if (typeof resumeText !== "string" || resumeText.trim().length < LIMITS.RESUME_MIN) {
     return res.status(400).json({
@@ -84,9 +92,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const model = genAI.getGenerativeModel({
       model: safeModel,
+      systemInstruction: SYSTEM_INSTRUCTION,
       generationConfig: {
         // Força saída JSON — elimina a necessidade de regex de sanitização
         responseMimeType: "application/json",
+        responseSchema: GEMINI_ANALYSIS_RESPONSE_SCHEMA,
         // Temperatura baixa: mais determinístico, menos "criativo" = menos alucinações
         temperature: 0.2,
         // Top-P conservador para manter consistência
@@ -96,32 +106,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const prompt = buildPrompt(resumeText.trim(), jobDescription.trim(), safeLanguage);
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(prompt, { timeout: LIMITS.GEMINI_TIMEOUT_MS });
     const responseText = result.response.text();
-
-    // Parse JSON — com responseMimeType: "application/json" o modelo retorna JSON puro
-    // mas mantemos um try/catch robusto para casos edge
-    let rawData: unknown;
-    try {
-      rawData = JSON.parse(responseText);
-    } catch {
-      // Log técnico interno (nunca exposto ao usuário)
-      console.error("[analyze] JSON parse failed. Response length:", responseText.length);
-      return res.status(422).json({
-        error: "Analysis failed",
-        message: "The AI returned an unprocessable response. Please try again.",
-      });
-    }
-
-    // Validação com Zod
-    const validation = AnalyzeReportSchema.safeParse(rawData);
+    const validation = parseAnalysisResponse(responseText, resumeText);
 
     if (!validation.success) {
-      // Log detalhado para debugging interno — não exposto ao usuário
-      console.error("[analyze] Zod validation failed:", JSON.stringify(validation.error.format()));
+      console.error("[analyze] Response validation failed:", validation.reason);
       return res.status(422).json({
         error: "Analysis failed",
-        message: "The AI response did not match the expected format. Please try again.",
+        message: "The AI response could not be verified against the resume. Please try again.",
       });
     }
 
@@ -137,27 +130,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Erros da API Gemini (rate limit, quota, modelo inválido, etc.)
-    const isGeminiError =
-      error instanceof Error &&
-      (error.message.includes("quota") ||
-        error.message.includes("rate") ||
-        error.message.includes("API key") ||
-        error.message.includes("not found"));
-
-    if (isGeminiError) {
-      console.error("[analyze] Gemini API error:", (error as Error).message);
-      return res.status(503).json({
-        error: "Service temporarily unavailable",
-        message: "The AI service is temporarily unavailable. Please try again in a few moments.",
+    if (
+      error instanceof GoogleGenerativeAIFetchError ||
+      error instanceof GoogleGenerativeAIAbortError ||
+      error instanceof GoogleGenerativeAIResponseError
+    ) {
+      const classified = classifyGeminiError(error);
+      console.error("[analyze] Gemini request failed:", classified.error);
+      return res.status(classified.status).json({
+        error: classified.error,
+        message: classified.message,
       });
     }
 
-    // Erro genérico — log interno completo, mensagem genérica ao usuário
-    console.error("[analyze] Unexpected error:", error);
-    return res.status(500).json({
-      error: "Internal error",
-      message: "An unexpected error occurred. Please try again.",
+    console.error("[analyze] Unexpected analysis failure.");
+    return res.status(503).json({
+      error: "Analysis unavailable",
+      message: "The analysis could not be completed. Please try again.",
     });
   }
 }

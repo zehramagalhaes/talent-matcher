@@ -4,13 +4,20 @@ import { ResumeSourceSchema, type ResumeSource } from "../api/resume/sourceSchem
 const SUPPORTED_EXTENSIONS = new Set(["pdf", "docx", "txt"]);
 
 const SECTION_PATTERNS: Array<[ResumeSource["sections"][number]["type"], RegExp]> = [
-  ["experience", /^(work\s+experience|professional\s+experience|experience|employment|career\s+history)$/i],
+  [
+    "experience",
+    /^(work\s+experience|professional\s+experience|experience|employment|career\s+history)$/i,
+  ],
   ["education", /^(education|academic\s+background|qualifications)$/i],
   ["skills", /^(skills|technical\s+skills|technologies|tools|core\s+competencies)$/i],
   ["certifications", /^(certifications?|licenses?|credentials)$/i],
 ];
 
-const cleanLine = (line: string) => line.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
+const cleanLine = (line: string) =>
+  line
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
 
 /** Keeps the complete extracted text and groups lines conservatively by recognizable headings. */
 export const parseResumeText = (text: string): ResumeSource => {
@@ -34,11 +41,14 @@ export const parseResumeText = (text: string): ResumeSource => {
   for (const rawLine of originalText.split("\n")) {
     const line = cleanLine(rawLine);
     if (!line) {
-      if (currentLines.length && currentLines[currentLines.length - 1] !== "") currentLines.push("");
+      if (currentLines.length && currentLines[currentLines.length - 1] !== "")
+        currentLines.push("");
       continue;
     }
 
-    const headingMatch = SECTION_PATTERNS.find(([, pattern]) => pattern.test(line.replace(/:$/, "")));
+    const headingMatch = SECTION_PATTERNS.find(([, pattern]) =>
+      pattern.test(line.replace(/:$/, ""))
+    );
     if (headingMatch) {
       saveSection();
       currentType = headingMatch[0];
@@ -149,9 +159,14 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
     if (!normalizedText) throw new Error("No readable text was found in this file.");
     return normalizedText;
   } catch (error) {
-    if (error instanceof Error && /Unsupported file type|No readable text|unreadable content/.test(error.message)) {
+    if (
+      error instanceof Error &&
+      /Unsupported file type|No readable text|unreadable content/.test(error.message)
+    ) {
       throw error;
     }
-    throw new Error(`Could not read the ${ext.toUpperCase()} resume. Please check the file and try again.`);
+    throw new Error(
+      `Could not read the ${ext.toUpperCase()} resume. Please check the file and try again.`
+    );
   }
 };
