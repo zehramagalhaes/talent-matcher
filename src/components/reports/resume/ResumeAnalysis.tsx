@@ -14,6 +14,7 @@ import { StrengthsGaps } from "@/components/reports/resume/sections/StrengthsGap
 import ExperienceBridge from "@/components/reports/resume/sections/ExperienceBridge";
 import { ImprovementModal } from "@/components/modals/ImprovementModal";
 import { useResumeAnalysis } from "@/hooks/useResumeAnalysis";
+import { MatchingPlan } from "@/components/reports/resume/MatchingPlan";
 
 export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ data }) => {
   const { addToast } = useToast();
@@ -71,6 +72,8 @@ export const ResumeAnalysisReport: React.FC<{ data: AnalyzeReportResult }> = ({ 
           viewType={strategy}
           onAddKeyword={setPendingImprovement}
         />
+
+        <MatchingPlan data={data} />
 
         {/* TIER 3: Detailed Feedback (Strengths vs Gaps) */}
         <StrengthsGaps strengths={safeStrengths} gaps={safeGaps} />

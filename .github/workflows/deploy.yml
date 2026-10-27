@@ -18,21 +18,24 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: 📦 Install Dependencies
         run: npm ci
+
+      - name: 📚 Validate Project Documentation
+        run: npm run docs:check
 
       - name: 🧪 Run Lint & Format
         run: |
           npm run lint
           npm run format:check
+          npm run type-check
+          npm test
 
       - name: 🛠️ Build Check
         run: npm run build
-        env:
-          NEXT_PUBLIC_GEMINI_API_KEY: ${{ secrets.NEXT_PUBLIC_GEMINI_API_KEY }}
 
   # 2. Final check for merge conflicts (PRs only)
   check-conflicts:
@@ -56,7 +59,7 @@ jobs:
             echo "✅ No conflicts."
           fi
 
-  # 3. Status signal that Vercel looks for
+  # 3. Final PR readiness status
   pr-ready:
     name: 🏁 PR Readiness Signal
     runs-on: ubuntu-latest
@@ -64,4 +67,4 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: ✅ Approval
-        run: echo "Code is validated. Vercel is free to deploy upon merge."
+        run: echo "Repository validation and conflict checks passed."

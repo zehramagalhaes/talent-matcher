@@ -18,12 +18,14 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/router";
-import { extractTextFromFile } from "@/utils/fileUtils";
+import { extractTextFromFile, parseResumeText } from "@/utils/fileUtils";
+import { ResumeSourceSchema } from "@/api/resume/sourceSchema";
+import { getSessionData, removeSessionData, setSessionData } from "@/utils/sessionData";
 
 // Helper for clean state initialization
 const getInitialState = (key: string, isEditMode: boolean) => {
   if (typeof window !== "undefined" && isEditMode) {
-    return localStorage.getItem(key) || "";
+    return getSessionData(key) || "";
   }
   return "";
 };
@@ -68,17 +70,18 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     try {
       setIsExtracting(true);
       const text = await extractTextFromFile(file);
+      const structuredResume = parseResumeText(text);
 
       setPreview(text);
       setResumeName(file.name);
 
-      localStorage.setItem("resumeText", text);
-      localStorage.setItem("resumeName", file.name);
+      setSessionData("resumeText", text);
+      setSessionData("resumeName", file.name);
+      setSessionData("resumeStructure", JSON.stringify(structuredResume));
 
       onResumeUpload(file, text);
-    } catch (error) {
+    } catch {
       addToast(t("form.resume.error.read"), "error");
-      throw error; // Re-throw for potential higher-level handling/logging
     } finally {
       setIsExtracting(false);
     }
@@ -86,17 +89,30 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
 
   const handleJobChange = (val: string) => {
     setJobText(val);
-    localStorage.setItem("jobText", val);
+    setSessionData("jobText", val);
     onJobDescriptionChange(val);
   };
 
   const handleClearResume = () => {
     setResumeName("");
     setPreview("");
-    localStorage.removeItem("resumeName");
-    localStorage.removeItem("resumeText");
+    removeSessionData("resumeName");
+    removeSessionData("resumeText");
+    removeSessionData("resumeStructure");
     onResumeUpload(null, "");
   };
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    const storedStructure = getSessionData("resumeStructure");
+    if (!storedStructure) return;
+    try {
+      const parsed = ResumeSourceSchema.safeParse(JSON.parse(storedStructure));
+      if (!parsed.success) removeSessionData("resumeStructure");
+    } catch {
+      removeSessionData("resumeStructure");
+    }
+  }, [isEditMode]);
 
   return (
     <Stack spacing={3}>

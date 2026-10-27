@@ -4,24 +4,46 @@ import {
   GeminiListModelsResponse,
   GeminiModelOption,
 } from "@/api/models/gemini/geminiModels.types";
+import { isSupportedGeminiModelId } from "@/api/analyze/requestSchema";
+import { getClientRateLimitKey, isRateLimited } from "@/api/security/rateLimit";
 
-export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
-  const apiKey = process.env.GEMINI_API_KEY;
+const MODELS_TIMEOUT_MS = 8_000;
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY_ALT;
   const baseUrl = "https://generativelanguage.googleapis.com/v1beta";
 
   // Force bypass of Next.js 15+ 304 Caching
   res.setHeader("Cache-Control", "no-store, max-age=0");
 
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).json({ success: false, error: "Method not allowed" });
+  }
+
+  const key = getClientRateLimitKey(req.headers, req.socket.remoteAddress || "unknown");
+  if (isRateLimited(`models:${key}`, 30, 60_000)) {
+    res.setHeader("Retry-After", "60");
+    return res.status(429).json({ success: false, error: "Rate limit exceeded" });
+  }
+
   if (!apiKey) {
-    return res.status(500).json({ success: false, error: "API Key missing" });
+    return res.status(503).json({ success: false, error: "Service unavailable" });
   }
 
   try {
-    const response = await fetch(`${baseUrl}/models?key=${apiKey}`, { cache: "no-store" });
+    const response = await fetch(`${baseUrl}/models`, {
+      cache: "no-store",
+      headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(MODELS_TIMEOUT_MS),
+    });
     const data: GeminiListModelsResponse = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({ success: false, error: "Google API Error" });
+      return res.status(response.status === 429 ? 503 : 502).json({
+        success: false,
+        error: "Model list unavailable",
+      });
     }
 
     const filteredModels: GeminiModelOption[] = (data.models || [])
@@ -34,7 +56,8 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
         const isGenerator = methods.includes("generateContent");
 
         // 2. TARGET: 2.5 and 3.x series
-        const isModern = name.includes("gemini-2.5") || name.includes("gemini-3");
+        const id = m.name?.split("/").pop() || "";
+        const isModern = isSupportedGeminiModelId(id);
 
         // 3. EXCLUSION: Block specialized engines that fail at resume analysis
         // We block "image" and "banana" because they are for visuals/pixels.
@@ -65,6 +88,10 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
 
     return res.status(200).json({ success: true, models: sortedModels });
   } catch (error: unknown) {
-    return res.status(500).json({ success: false, error: (error as Error).message });
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return res.status(timedOut ? 504 : 502).json({
+      success: false,
+      error: timedOut ? "Model list timed out" : "Model list unavailable",
+    });
   }
 }

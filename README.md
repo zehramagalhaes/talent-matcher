@@ -7,60 +7,55 @@
 
 ## 📖 Overview
 
-**TalentMatcher** is a web application built with **Next.js** and **Material UI** that helps candidates and recruiters evaluate the compatibility between resumes and job postings.  
+**TalentMatcher** is a Next.js web application that compares a candidate's resume with a job description. It extracts text from a PDF, DOCX, or TXT resume, sends the text and entered job description to a server-side Gemini API route, and presents a report with a matching plan, strengths, gaps, and compact and detailed tailored resume versions.
 
-Upload your **resume** and a **job description** (`.md` or `.html`), and TalentMatcher will:
-
-- 📂 Extract relevant experiences and job requirements  
-- 🧑‍💼 Generate a recruiter persona (`tech_recruiter.md`)  
-- 📝 Create a structured job file (`job123.md`)  
-- 🤖 Use the **Gemini API (agent anti gravity)** to analyze compatibility  
-- 📊 Provide a detailed report with strengths, gaps, and improvement suggestions  
-
-Designed with **SOLID principles** and **Clean Code**, TalentMatcher offers a scalable and maintainable architecture for future growth.
+The application includes a report/edit flow and client-side PDF and DOCX downloads. Resume and job content are held in the current browser tab; see [Security and privacy](./SECURITY_AND_PRIVACY.md) for retention and external processing details.
 
 ---
 
 ## ✨ Features
 
-- **Resume Upload** → Supports `.pdf` and `.docx`  
-- **Job Description Upload** → Supports `.md` and `.html`  
-- **AI-Powered Analysis** → Gemini API integration for compatibility reports  
-- **Modern UI** → Built with the latest **Material UI** components  
-- **Clean Architecture** → Following SOLID and Clean Code guidelines  
-- **Deployable on GitHub Pages** → Easy hosting and sharing  
+- **Resume Upload** → Supports `.pdf`, `.docx`, and `.txt` (5 MiB maximum)
+- **Job Description** → Entered as text in the form
+- **AI-Powered Analysis** → Gemini-backed matching plan, strengths, gaps, and tailored resume versions
+- **Resume Export** → Client-side PDF and DOCX downloads
+- **UI** → Next.js, TypeScript, Material UI, and English/Portuguese translations
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js](https://nextjs.org/)  
-- **UI Library**: [Material UI](https://mui.com/)  
-- **Language**: TypeScript  
-- **AI Integration**: Gemini API (anti-gravity agent)  
-- **Form Validation**: react-hook-form + Zod  
-- **Code Quality**: ESLint, Prettier, Husky  
-- **Deployment**: Vercel + GitHub Actions  
+- **Framework**: [Next.js](https://nextjs.org/)
+- **UI Library**: [Material UI](https://mui.com/)
+- **Language**: TypeScript
+- **AI Integration**: Google Gemini API through server-side Next.js API routes
+- **Form Validation**: react-hook-form + Zod
+- **Code Quality**: ESLint, Prettier, Husky
+- **Deployment**: Vercel Next.js deployment; GitHub Actions validates changes but does not deploy
 
 ---
 
 ## 🚀 Getting Started
 
 ### 1. Clone the repository
+
 ```bash
 git clone https://github.com/zehramagalhaes/talentmatcher.git
 cd talentmatcher
 ```
 
 ### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Configure API Keys
+
 Follow [**SETUP_API_KEYS.md**](./SETUP_API_KEYS.md) for detailed setup instructions.
 
 Quick start:
+
 ```bash
 cp .env.example .env.local
 # Edit .env.local and add your Gemini API key
@@ -69,6 +64,7 @@ cp .env.example .env.local
 For complete API key reference, see [**ENV_VARS.md**](./ENV_VARS.md).
 
 ### 4. Run the app
+
 ```bash
 npm run dev
 ```
@@ -79,50 +75,50 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 📚 Documentation
 
+The maintained project knowledge base is indexed in [docs/README.md](./docs/README.md). Start there for architecture, features, agent directives, decisions, current status, and verified improvements.
+
 ### Setup & Configuration
+
 - [**SETUP_API_KEYS.md**](./SETUP_API_KEYS.md) - Step-by-step API key configuration guide
 - [**ENV_VARS.md**](./ENV_VARS.md) - Complete environment variables reference
+- [**DEPLOYMENT.md**](./DEPLOYMENT.md) - Vercel project setup, Git-based deployment, CLI option, and checks
 - [**.env.example**](./.env.example) - Environment variables template
 
 ### Development
-- [**BRANCH_PROTECTION_RULES.md**](./.github/BRANCH_PROTECTION_RULES.md) - Git workflow and merge strategy
-- [**CHANGELOG.md**](./CHANGELOG.md) - Project changelog and version history
-- [**Pull Request Template**](./.github/pull_request_template.md) - PR guidelines with changelog section
 
-### Issue Templates
-- [**API Keys Setup Issue Template**](./.github/ISSUE_TEMPLATE/api-keys-setup.md) - GitHub issue for tracking secret configuration
+- [**CHANGELOG.md**](./CHANGELOG.md) - Retained project history; older entries may not describe current source
+- [**LINTING_SETUP.md**](./LINTING_SETUP.md) - Existing lint/format notes; confirm current scripts in `package.json`
 
 ---
 
 ## 💻 Development Workflow
 
 ### Local Development
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Make changes and run linting: `npm run lint:fix`
-3. Commit your changes: `git commit -m "feat: description"`
-4. Push to remote: `git push origin feature/your-feature`
-5. Open a pull request on GitHub
+
+1. Read [AGENTS.md](./AGENTS.md) and the relevant docs under [docs/](./docs/README.md).
+2. Create a feature branch and make a scoped change.
+3. Run applicable checks (`npm test`, `npm run type-check`, `npm run lint`, and/or `npm run build`).
+4. Update the relevant docs and changelog when appropriate, then open a pull request.
 
 ### Code Quality
+
 - **Linting**: `npm run lint` (or `npm run lint:fix` to auto-fix)
+- **Tests**: `npm test`
+- **Type checking**: `npm run type-check`
 - **Formatting**: `npm run format` (or use `npm run lint:fix`)
 - **Build**: `npm run build`
 
-### Protected Branches
-- Commits to `main`, `develop`, and `production` are blocked locally
-- All PRs require status checks (ESLint, Prettier, Build) to pass
-- PRs use **Squash and Merge** strategy by default
-- Branch must be up to date before merging
-
-See [**BRANCH_PROTECTION_RULES.md**](./.github/BRANCH_PROTECTION_RULES.md) for full details.
+The current CI checks are defined in [.github/workflows/deploy.yml](./.github/workflows/deploy.yml). Repository branch protection settings are external to this source tree and are not asserted here.
 
 ---
 
 ## 🔐 Security
 
 ### API Keys Management
+
 - Never commit `.env.local` or any `.env.*` files
-- Use GitHub Secrets for CI/CD pipelines
+- Use Vercel project environment settings for Gemini API keys
+- The current GitHub Actions checks do not require Gemini or Vercel secrets
 - Rotate API keys quarterly
 - Different keys for dev, staging, and production
 
@@ -143,32 +139,28 @@ npm run lint             # Run ESLint checks
 npm run lint:fix         # Auto-fix ESLint and Prettier issues
 npm run format           # Format code with Prettier
 npm run format:check     # Check if code is formatted correctly
+npm run docs:check       # Validate the project knowledge base
 
-# Git Hooks (Husky)
-npm run prepare          # Install Husky git hooks
+# Tests and types
+npm test                 # Run Node test suite
+npm run type-check       # Run TypeScript checking
 ```
 
 ## 🤝 Contributing
 
 Before you start, please:
 
-1. Read [**BRANCH_PROTECTION_RULES.md**](./.github/BRANCH_PROTECTION_RULES.md) for workflow guidelines
-2. Follow the [**Pull Request Template**](./.github/pull_request_template.md)
-3. Ensure all checks pass: `npm run lint:fix && npm run build`
-4. Update [**CHANGELOG.md**](./CHANGELOG.md) with your changes
-
-### Report Issues
-
-Use the appropriate issue template:
-- [🔐 API Keys Setup](./GitHub/ISSUE_TEMPLATE/api-keys-setup.md) for configuration issues
-
----
+1. Read [AGENTS.md](./AGENTS.md) and [docs/ENGINEERING_DIRECTIVES.md](./docs/ENGINEERING_DIRECTIVES.md).
+2. Run relevant tests and checks from `package.json` and CI.
+3. Update the docs knowledge base for meaningful behavior, decisions, or status changes.
 
 ## 📜 License
+
 This project is licensed under the MIT License.
 Feel free to use, modify, and distribute.
 
 ## 🌟 Acknowledgments
+
 - Built with ❤️ using Next.js and Material UI
-- Powered by Gemini API  
+- Powered by Gemini API
 - Inspired by the mission to connect talent with opportunity

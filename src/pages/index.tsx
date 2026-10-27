@@ -31,6 +31,7 @@ import { UploadFormFooter } from "@/components/forms/UploadFormFooter";
 import { fetchAvailableModels } from "@/api/models/gemini/geminiModelsApi";
 import { DEFAULT_GEMINI_MODEL } from "@/constants";
 import { GeminiModelOption } from "@/api/models/gemini/geminiModels.types";
+import { getSessionData, setSessionData } from "@/utils/sessionData";
 
 function HomeContent() {
   const theme = useTheme();
@@ -91,7 +92,7 @@ function HomeContent() {
   // Handle Redirection logic
   useEffect(() => {
     if (!router.isReady) return;
-    const hasResult = localStorage.getItem("analysisResult");
+    const hasResult = getSessionData("analysisResult");
     if (hasResult && !isEditMode) {
       router.replace("/report");
     }
@@ -100,8 +101,8 @@ function HomeContent() {
   const handleSubmit = () => {
     startTransition(async () => {
       // Save preferences
-      localStorage.setItem("resumeText", resumeText);
-      localStorage.setItem("jobText", jobDescription);
+      setSessionData("resumeText", resumeText);
+      setSessionData("jobText", jobDescription);
       localStorage.setItem("selectedModel", selectedModel);
 
       try {
