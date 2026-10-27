@@ -18,7 +18,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/router";
-import { extractTextFromFile } from "@/utils/fileUtils";
+import { extractTextFromFile, parseResumeText } from "@/utils/fileUtils";
+import { ResumeSourceSchema } from "@/api/resume/sourceSchema";
 
 // Helper for clean state initialization
 const getInitialState = (key: string, isEditMode: boolean) => {
@@ -68,17 +69,18 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     try {
       setIsExtracting(true);
       const text = await extractTextFromFile(file);
+      const structuredResume = parseResumeText(text);
 
       setPreview(text);
       setResumeName(file.name);
 
       localStorage.setItem("resumeText", text);
       localStorage.setItem("resumeName", file.name);
+      localStorage.setItem("resumeStructure", JSON.stringify(structuredResume));
 
       onResumeUpload(file, text);
-    } catch (error) {
+    } catch {
       addToast(t("form.resume.error.read"), "error");
-      throw error; // Re-throw for potential higher-level handling/logging
     } finally {
       setIsExtracting(false);
     }
@@ -95,8 +97,21 @@ const UploadForm: React.FC<UploadFormProps> = ({ onResumeUpload, onJobDescriptio
     setPreview("");
     localStorage.removeItem("resumeName");
     localStorage.removeItem("resumeText");
+    localStorage.removeItem("resumeStructure");
     onResumeUpload(null, "");
   };
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    const storedStructure = localStorage.getItem("resumeStructure");
+    if (!storedStructure) return;
+    try {
+      const parsed = ResumeSourceSchema.safeParse(JSON.parse(storedStructure));
+      if (!parsed.success) localStorage.removeItem("resumeStructure");
+    } catch {
+      localStorage.removeItem("resumeStructure");
+    }
+  }, [isEditMode]);
 
   return (
     <Stack spacing={3}>

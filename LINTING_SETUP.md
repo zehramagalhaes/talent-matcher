@@ -57,7 +57,8 @@ Set these in your repository settings (Settings → Secrets and variables → Ac
 VERCEL_TOKEN          - Your Vercel API token
 VERCEL_ORG_ID         - Your Vercel organization ID
 VERCEL_PROJECT_ID     - Your Vercel project ID
-NEXT_PUBLIC_GEMINI_API_KEY - Your Gemini API key
+GEMINI_API_KEY        - Your Gemini API key (server-side only — no NEXT_PUBLIC_ prefix)
+GEMINI_API_KEY_ALT    - Optional fallback Gemini API key
 ```
 
 ### GitHub Actions Workflow

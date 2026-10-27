@@ -114,6 +114,7 @@ function ReportContent() {
             // Perhaps only remove the form data instead:
             localStorage.removeItem("analysisResult");
             localStorage.removeItem("resumeText");
+            localStorage.removeItem("resumeStructure");
             localStorage.removeItem("jobText");
             localStorage.removeItem("selectedModel");
             router.push("/");

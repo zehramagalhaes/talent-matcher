@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { AnalyzeReportResult } from "@/api/analyze/schema";
+import { analyzeResume } from "@/api/analyze/analyzeApi";
 import { useToast } from "@/context/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -17,11 +18,11 @@ export const useReport = (autoHydrate = false) => {
   const isInitialMount = useRef(true);
 
   const generateReport = useCallback(
-    async (resumeText?: string, jobDescription?: string, model?: string) => {
+    async (resumeText?: string, jobDescription?: string, selectedModel?: string) => {
       setIsLoading(true);
       setError(null);
 
-      // Scenario: Re-fetching/Hydrating using stored data if args are missing
+      // Cenário: re-fetch / hidratação usando dados armazenados se os args estiverem ausentes
       const finalResume = resumeText || localStorage.getItem("resumeText");
       const finalJob = jobDescription || localStorage.getItem("jobText");
 
@@ -33,16 +34,14 @@ export const useReport = (autoHydrate = false) => {
       }
 
       try {
-        const response = await axios.post("/api/analyze", {
+        const result = await analyzeResume({
           resumeText: finalResume,
           jobDescription: finalJob,
           language: locale,
-          model,
+          selectedModel,
         });
 
-        const result: AnalyzeReportResult = response.data;
-
-        // Persist everything
+        // Persiste os dados de entrada e o resultado
         localStorage.setItem("analysisResult", JSON.stringify(result));
         localStorage.setItem("resumeText", finalResume);
         localStorage.setItem("jobText", finalJob);
@@ -50,9 +49,18 @@ export const useReport = (autoHydrate = false) => {
         setReport(result);
         return { success: true, data: result };
       } catch (err) {
-        const errorMessage = axios.isAxiosError(err)
-          ? err.response?.data?.message || err.message
-          : "Unknown error";
+        // Extrai mensagem de erro sem vazar detalhes técnicos internos para o usuário
+        let errorMessage = "Erro desconhecido";
+
+        if (axios.isAxiosError(err)) {
+          // Prefere a mensagem amigável do servidor, se disponível
+          errorMessage =
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            err.message;
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        }
 
         setError(errorMessage);
         addToast(t("report.error.prefix").replace("{message}", errorMessage), "error");
@@ -64,7 +72,7 @@ export const useReport = (autoHydrate = false) => {
     [locale, t, addToast]
   );
 
-  // Hydration Logic: Runs on the Report page to load from Cache
+  // Lógica de hidratação: executa na página de relatório para carregar do cache
   useEffect(() => {
     if (autoHydrate && isInitialMount.current && router.isReady) {
       isInitialMount.current = false;
@@ -75,10 +83,10 @@ export const useReport = (autoHydrate = false) => {
           setReport(JSON.parse(cached));
         } catch {
           localStorage.removeItem("analysisResult");
-          generateReport(); // Try to regenerate if cache is corrupt
+          generateReport(); // Tenta regenerar se o cache estiver corrompido
         }
       } else {
-        generateReport(); // No cache, try to generate from text
+        generateReport(); // Sem cache, tenta gerar a partir do texto armazenado
       }
     }
   }, [autoHydrate, router.isReady, generateReport]);
